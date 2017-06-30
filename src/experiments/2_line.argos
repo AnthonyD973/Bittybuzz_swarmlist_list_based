@@ -20,7 +20,7 @@
                                        show_rays="true"/>
                 <kilobot_light implementation="rot_z_only"/>
             </sensors>
-            <params behavior="build/kilobot_list_based"/>
+            <params behavior="build/behaviors/swarmlist_list_based"/>
         </kilobot_controller>
     </controllers>
 

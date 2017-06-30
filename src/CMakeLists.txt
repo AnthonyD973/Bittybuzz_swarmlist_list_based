@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.0)
 
 project(kilobot_list_based)
 
+
+#
+# Find packages and include them
+#
+
 # Find the ARGoS package, make sure to save the ARGoS prefix
 find_package(PkgConfig)
 pkg_check_modules(ARGOS REQUIRED argos3_simulator)
@@ -19,18 +24,25 @@ include_directories(${CMAKE_SOURCE_DIR} ${ARGOS_INCLUDE_DIRS} ${KILOLIB_INCLUDE_
 link_directories(${ARGOS_LIBRARY_DIRS})
 
 
-file(GLOB HEADERS "*.h")
-file(GLOB C_SOURCES "*.c")
-file(GLOB CXX_SOURCES "*.cpp")
-set(FILES ${HEADERS} ${C_SOURCES} ${CXX_SOURCES})
+#
+# Function definitions
+#
 
-set(TARGET kilobot_list_based)
-add_executable(${TARGET} ${FILES})
-target_link_libraries(${TARGET}
-    argos3core_simulator
-    argos3plugin_simulator_kilobot
-    argos3plugin_simulator_genericrobot
-    argos3plugin_simulator_kilolib
-    rt
-)
-set_target_properties(${TARGET} PROPERTIES LINKER_LANGUAGE CXX)
+# Function to add a target for ARGoS for kilobots
+function (add_argos_kilobot_executable _TARGET)
+    add_executable(${_TARGET} ${ARGN})
+    target_link_libraries(${_TARGET}
+        argos3core_simulator
+        argos3plugin_simulator_kilobot
+        argos3plugin_simulator_genericrobot
+        argos3plugin_simulator_kilolib
+        rt
+    )
+    set_target_properties(${_TARGET} PROPERTIES LINKER_LANGUAGE CXX)
+endfunction()
+
+
+#
+# Descend into subdirectories
+#
+add_subdirectory(behaviors)
