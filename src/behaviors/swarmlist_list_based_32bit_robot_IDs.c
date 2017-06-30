@@ -58,12 +58,16 @@ void msg_tx_success() {
 /**
  * Number of swarmlist entries in a swarm message.
  */
-#define SWARM_ENTRY_SZ 6
+#define SWARM_ENTRY_SZ (                                                \
+        sizeof(swarmlist.data[0].robot) +                               \
+        sizeof(swarmlist.data[0].swarm_mask) +                          \
+        sizeof(swarmlist.data[0].lamport)                               \
+    )
 
 /**
  * Number of entries per swarm message.
  */
-#define NUM_ENTRIES_PER_SWARM_MSG 1
+#define NUM_ENTRIES_PER_SWARM_MSG (9/SWARM_ENTRY_SZ)
 
 /**
  * Offset, inside a message, of the robot ID of the first
@@ -75,13 +79,13 @@ void msg_tx_success() {
  * Offset, inside a message, of the swarm mask of the first
  * entry of the message.
  */
-#define SWARM_MASK_POS 4
+#define SWARM_MASK_POS (ROBOT_ID_POS + sizeof(swarmlist.data[0].robot))
 
 /**
  * Offset, inside a message, of the Lamport clock of the first
  * entry of the message.
  */
-#define LAMPORT_POS 5
+#define LAMPORT_POS (SWARM_MASK_POS + sizeof(swarmlist.data[0].swarm_mask))
 
 void send_next_swarm_chunk() {
     if (swarmlist.size != 0) {

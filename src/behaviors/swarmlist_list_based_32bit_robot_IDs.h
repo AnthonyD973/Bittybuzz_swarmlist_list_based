@@ -30,7 +30,7 @@ extern "C" {
 #define ROBOT_SWARMLIST_CAP 100
 
 /**
- * The number of loop() calls between the emission of swarm chunks.
+ * The number of timesteps between the emission of swarm chunks.
  */
 #define SWARM_CHUNK_DELAY 5
 
@@ -45,7 +45,7 @@ extern "C" {
  * is considered inactive.
  * @note <b>Max value: 255</b>
  */
-#define SWARMLIST_TICKS_TO_INACTIVE 200
+#define SWARMLIST_TICKS_TO_INACTIVE (uint8_t)255
 
 /**
  * Whether to remove old entries of the swarmlist structure.
@@ -59,11 +59,11 @@ extern "C" {
  * @note <b>Max value: 255</b>
  * @see SWARMLIST_REMOVE_OLD_ENTRIES
  */
-#define SWARMLIST_TICKS_TO_REMOVAL 200
+#define SWARMLIST_TICKS_TO_REMOVAL (uint8_t)255
 
 /**
- * The number of loop()s before each swarmlist tick.
- * 1 means "tick every loop". This value has the effect of a
+ * The number of timesteps before each swarmlist tick.
+ * 1 means "tick every timestep". This value has the effect of a
  * multiplier to SWARMLIST_TICKS_TO_INACTIVE and SWARMLIST_TICKS_TO_REMOVAL.
  * @see SWARMLIST_TICKS_TO_INACTIVE
  * @see SWARMLIST_TICKS_TO_REMOVAL

@@ -36,7 +36,7 @@
             <position method="grid"
                       center="0,0,0"
                       distances="0,0.06,0"
-                      layout="1,50,1"/>
+                      layout="1,100,1"/>
             <orientation method="constant" values="0,0,0"/>
             <entity quantity="50" max_trials="1">
                 <kilobot id="kb">

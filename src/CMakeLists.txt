@@ -46,3 +46,5 @@ endfunction()
 # Descend into subdirectories
 #
 add_subdirectory(behaviors)
+add_subdirectory(loops)
+add_subdirectory(experimenters)
