@@ -11,4 +11,6 @@ Compiling
 Running an experiment
 -----------------------
 
+You must have [argos3](http://www.argos-sim.info) installed. Go to the git repository's root, and execute:
+
     $ argos3 -c some_file.argos
