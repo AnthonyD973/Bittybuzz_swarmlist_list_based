@@ -17,4 +17,4 @@ You must have [argos3](http://www.argos-sim.info) installed. Go to the git repos
 
 For example:
 
-    $ argos3 -c src/experiments/2_line.argos
+    $ argos3 -c src/experiments/swarmlist_sim.argos

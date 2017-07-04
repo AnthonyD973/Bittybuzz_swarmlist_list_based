@@ -24,6 +24,11 @@
         </kilobot_controller>
     </controllers>
 
+    <loop_functions
+        label="exp_loop_func"
+        robots="4"
+        topology="line"/>
+
     <arena size="10,10,5" center="0,0,0.25">
         <light id="l0"
                position="0,0,0.95"
@@ -32,7 +37,7 @@
                intensity="1.0"
                medium="leds"/>
 
-        <distribute>
+        <!--<distribute>
             <position method="grid"
                       center="0,0,0"
                       distances="0,0.06,0"
@@ -43,11 +48,11 @@
                     <controller config="kb_ctrl"/>
                 </kilobot>
             </entity>
-        </distribute>
+        </distribute>-->
     </arena>
 
     <media>
-        <kilobot_communication id="kilocomm" message_drop_prob="0.75"/>
+        <kilobot_communication id="kilocomm" message_drop_prob="0"/>
         <led id="leds"/>
     </media>
 
@@ -56,16 +61,16 @@
     </physics_engines>
 
     <visualization>
-        <!--<qt-opengl>
-            <camera>
+        <qt-opengl>
+            <!--<camera>
                 <placement
                     idx="0"
                     position="-0.136774,0.2,0.157987"
                     look_at="0.570333,0.2,-0.54912"
                     up="0.707107,0,0.707107"
                     lens_focal_length="20" />
-            </camera>
-        </qt-opengl>-->
+            </camera>-->
+        </qt-opengl>
     </visualization>
 
 </argos-configuration>

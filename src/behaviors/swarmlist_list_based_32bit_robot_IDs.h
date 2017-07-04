@@ -10,8 +10,9 @@
 #define SWARMLIST_LIST_BASED_H
 
 #include <inttypes.h>
+#include <kilolib.h>
 
-#include "include.h"
+#include "include.h" // Replaces "#include <bittybuzz/bbzinclude.h>" in BittyBuzz
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,6 +66,7 @@ extern "C" {
  * The number of timesteps before each swarmlist tick.
  * 1 means "tick every timestep". This value has the effect of a
  * multiplier to SWARMLIST_TICKS_TO_INACTIVE and SWARMLIST_TICKS_TO_REMOVAL.
+ * @note <b>Max value: 65535</b>
  * @see SWARMLIST_TICKS_TO_INACTIVE
  * @see SWARMLIST_TICKS_TO_REMOVAL
  */
@@ -145,14 +147,15 @@ uint8_t swarmlist_entry_shouldremove(const swarmlist_entry_t* e) {
  */
 typedef struct PACKED {
     swarmlist_entry_t data[ROBOT_SWARMLIST_CAP]; ///< The data of the swarm list.
-    uint8_t size;  ///< Number of entries.
-    uint8_t next_to_send; ///< The index of the next entry to send via a swarm chunk.
+    uint32_t size; ///< Number of entries.
+    uint32_t num_active; ///< Number of active entries.
+    uint32_t next_to_send; ///< The index of the next entry to send via a swarm chunk.
 } swarmlist_t;
 
 /**
  * Swarmlist single instance.
  */
-extern swarmlist_t swarmlist;
+extern swarmlist_t* swarmlist;
 
 /**
  * Constructs the swarmlist.
@@ -171,21 +174,21 @@ void swarmlist_update(robot_id_t robot,
  */
 ALWAYS_INLINE
 void swarmlist_next() {
-    ++swarmlist.next_to_send;
-    if (swarmlist.next_to_send >= swarmlist.size)
-        swarmlist.next_to_send = 0;
+    ++swarmlist->next_to_send;
+    if (swarmlist->next_to_send >= swarmlist->size)
+        swarmlist->next_to_send = 0;
 }
 
 /**
  * Determines the size of the swarmlist.
  */
 ALWAYS_INLINE
-uint8_t swarmlist_size() { return swarmlist.size; }
+uint8_t swarmlist_size() { return swarmlist->size; }
 
 /**
  * Determines the number of active entries in the swarmlist.
  */
-uint8_t swarmlist_count();
+uint8_t swarmlist_num_active();
 
 /**
  * Removes 1 from all timers. If a timer is at 0, remove the entry.

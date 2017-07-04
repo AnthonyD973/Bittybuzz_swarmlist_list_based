@@ -6,8 +6,6 @@
  * for the simulation.
  */
 
-#define DEBUGGED_ROBOT 34
-
 #include <kilolib.h>
 #include <message_crc.h>
 #include <stdio.h>
@@ -18,7 +16,7 @@
 // =  GENERAL GLOBAL VARIABLES   =
 // ===============================
 
-swarmlist_t swarmlist;
+swarmlist_t* swarmlist;
 uint8_t local_swarm_mask = 0x01;
 lamport8_t local_lamport = 0;
 
@@ -50,18 +48,14 @@ message_t* which_msg_tx() {
     return 0;
 }
 
-void msg_tx_success() {
-    should_send_tx = 0;
-    msg_tx_sent = 1;
-}
 
 /**
  * Number of swarmlist entries in a swarm message.
  */
 #define SWARM_ENTRY_SZ (                                                \
-        sizeof(swarmlist.data[0].robot) +                               \
-        sizeof(swarmlist.data[0].swarm_mask) +                          \
-        sizeof(swarmlist.data[0].lamport)                               \
+        sizeof(swarmlist->data[0].robot) +                               \
+        sizeof(swarmlist->data[0].swarm_mask) +                          \
+        sizeof(swarmlist->data[0].lamport)                               \
     )
 
 /**
@@ -79,20 +73,25 @@ void msg_tx_success() {
  * Offset, inside a message, of the swarm mask of the first
  * entry of the message.
  */
-#define SWARM_MASK_POS (ROBOT_ID_POS + sizeof(swarmlist.data[0].robot))
+#define SWARM_MASK_POS (ROBOT_ID_POS + sizeof(swarmlist->data[0].robot))
 
 /**
  * Offset, inside a message, of the Lamport clock of the first
  * entry of the message.
  */
-#define LAMPORT_POS (SWARM_MASK_POS + sizeof(swarmlist.data[0].swarm_mask))
+#define LAMPORT_POS (SWARM_MASK_POS + sizeof(swarmlist->data[0].swarm_mask))
 
+void msg_tx_success() {
+    // printf("#%d: sent #%d.\n", kilo_uid, *(robot_id_t*)&msg_tx.data[SWARM_ENTRY_SZ*0+ROBOT_ID_POS]);
+    should_send_tx = 0;
+    msg_tx_sent = 1;
+}
 void send_next_swarm_chunk() {
-    if (swarmlist.size != 0) {
+    if (swarmlist->size != 0) {
         // Send several swarm messages
-        const uint8_t NUM_MSGS = (swarmlist.size / NUM_ENTRIES_PER_SWARM_MSG + 1 >= SWARM_CHUNK_AMOUNT) ?
+        const uint8_t NUM_MSGS = (swarmlist->size / NUM_ENTRIES_PER_SWARM_MSG + 1 >= SWARM_CHUNK_AMOUNT) ?
                                  (SWARM_CHUNK_AMOUNT) :
-                                 (swarmlist.size / NUM_ENTRIES_PER_SWARM_MSG + 1);
+                                 (swarmlist->size / NUM_ENTRIES_PER_SWARM_MSG + 1);
 
         for (uint8_t i = 0; i < NUM_MSGS; ++i) {
             // Send a swarm message
@@ -100,14 +99,14 @@ void send_next_swarm_chunk() {
             for (uint8_t j = 0; j < NUM_ENTRIES_PER_SWARM_MSG; ++j) {
                 // Increment our own Lamport clock so that others are aware
                 // that we still exist.
-                swarmlist_entry_t* entry = &swarmlist.data[swarmlist.next_to_send];
+                swarmlist_entry_t* entry = &swarmlist->data[swarmlist->next_to_send];
 
                 // Don't send the info of inactive robots.
                 // A robot always has at least its own entry active,
                 // so we don't risk falling in infinite loops.
                 while (!swarmlist_entry_isactive(entry)) {
                     swarmlist_next();
-                    entry = &swarmlist.data[swarmlist.next_to_send];
+                    entry = &swarmlist->data[swarmlist->next_to_send];
                 }
 
                 // Increment Lamport clock when sending our own info.
@@ -115,9 +114,6 @@ void send_next_swarm_chunk() {
                     ++local_lamport;
                     entry->lamport = local_lamport;
                 }
-                // if (kilo_uid == DEBUGGED_ROBOT && entry->robot == DEBUGGED_ROBOT) {
-                //     LED(0,0,0); delay(15);
-                // }
 
                 // Append the next entry's data
                 *(robot_id_t*)&msg_tx.data[SWARM_ENTRY_SZ*j+ROBOT_ID_POS] = entry->robot;
@@ -130,6 +126,7 @@ void send_next_swarm_chunk() {
             }
             msg_tx.crc = message_crc(&msg_tx);
             should_send_tx = 1;
+            // printf("#%d: sending #%d.\n", kilo_uid, *(robot_id_t*)&msg_tx.data[SWARM_ENTRY_SZ*0+ROBOT_ID_POS]);
             msg_tx_busy_wait();
         }
     }
@@ -158,17 +155,6 @@ void process_msg_rx_swarm(message_t* msg_rx) {
             lamport8_t lamport  = msg_rx->data[SWARM_ENTRY_SZ*j+LAMPORT_POS];
             swarmlist_update(robot, swarm_mask, lamport);
         }
-                // if (kilo_uid != DEBUGGED_ROBOT) {
-                //     if (robot == DEBUGGED_ROBOT) {
-                //         LED(3,3,3);
-                //     }
-                //     else if (robot != kilo_uid) {
-                //         LED(0,1,0);
-                //     }
-                //     else {
-                //         LED(0,0,0);
-                //     }
-                // }
     }
 }
 
@@ -177,30 +163,36 @@ void process_msg_rx_swarm(message_t* msg_rx) {
 // ===============================
 
 void swarmlist_construct() {
-    swarmlist.size = 0;
-    swarmlist.next_to_send = 0;
+    swarmlist->size = 0;
+    swarmlist->num_active = 0;
+    swarmlist->next_to_send = 0;
 }
 
 void swarmlist_update(robot_id_t robot,
                       uint8_t swarm_mask,
                       lamport8_t lamport) {
-    uint8_t sz = swarmlist.size;
-    ++swarmlist.size;
+    uint8_t sz = swarmlist->size;
+    ++swarmlist->size;
+    ++swarmlist->num_active;
 
     // Does the entry already exist?
     uint8_t pos;
     uint8_t should_update = 1;
     for (pos = 0; pos < sz; ++pos) {
-        if (swarmlist.data[pos].robot == robot) {
+        if (swarmlist->data[pos].robot == robot) {
             // Yes ; it is not a new entry after all.
-            --swarmlist.size;
+            --swarmlist->size;
 
-            lamport8_t old_lamport = swarmlist.data[pos].lamport;
-            if (swarmlist_entry_isactive(&swarmlist.data[pos])) {
+            lamport8_t old_lamport = swarmlist->data[pos].lamport;
+            if (swarmlist_entry_isactive(&swarmlist->data[pos])) {
                 should_update = lamport_isnewer(lamport, old_lamport);
+                --swarmlist->num_active;
             }
             else {
                 should_update = (lamport != old_lamport);
+                if (!should_update) {
+                    --swarmlist->num_active;
+                }
             }
 
             break;
@@ -208,7 +200,7 @@ void swarmlist_update(robot_id_t robot,
     }
 
     if (should_update) {
-        swarmlist_entry_t* entry = &swarmlist.data[pos];
+        swarmlist_entry_t* entry = &swarmlist->data[pos];
         entry->robot      = robot;
         entry->swarm_mask = swarm_mask;
         entry->lamport    = lamport;
@@ -219,26 +211,27 @@ void swarmlist_update(robot_id_t robot,
 #ifdef SWARMLIST_REMOVE_OLD_ENTRIES
 
 void swarmlist_tick() {
-    for (uint8_t i = 0; i < swarmlist.size; ++i) {
+    for (uint8_t i = 0; i < swarmlist->size; ++i) {
        // Deal with entries in inactive mode
-        if (swarmlist_entry_isactive(&swarmlist.data[i])) {
-            --swarmlist.data[i].time_to_inactive;
+        if (swarmlist_entry_isactive(&swarmlist->data[i])) {
+            --swarmlist->data[i].time_to_inactive;
 
-            if (!swarmlist_entry_isactive(&swarmlist.data[i])) {
-                swarmlist.data[i].time_to_removal = SWARMLIST_TICKS_TO_REMOVAL;
+            if (!swarmlist_entry_isactive(&swarmlist->data[i])) {
+                swarmlist->data[i].time_to_removal = SWARMLIST_TICKS_TO_REMOVAL;
+                --swarmlist->num_active;
             }
         }
         else {
             // Deal with old inactive entries
-            if (swarmlist.data[i].time_to_removal > 0) {
-                --swarmlist.data[i].time_to_removal;
+            if (swarmlist->data[i].time_to_removal > 0) {
+                --swarmlist->data[i].time_to_removal;
             }
             else {
                 // Removal
 
                 cli(); // No interrups ; don't accept messages during removal.
-                swarmlist.data[i] = swarmlist.data[swarmlist.size-1];
-                --swarmlist.size;
+                swarmlist->data[i] = swarmlist->data[swarmlist->size-1];
+                --swarmlist->size;
                 sei();
             }
         }
@@ -248,26 +241,27 @@ void swarmlist_tick() {
 #else // SWARMLIST_REMOVE_OLD_ENTRIES
 
 void swarmlist_tick() {
-    for (uint8_t i = 0; i < swarmlist.size; ++i) {
+    for (uint8_t i = 0; i < swarmlist->size; ++i) {
        // Deal with entries in inactive mode
-        if (swarmlist_entry_isactive(&swarmlist.data[i])) {
-            --swarmlist.data[i].time_to_inactive;
+        if (swarmlist_entry_isactive(&swarmlist->data[i])) {
+            --swarmlist->data[i].time_to_inactive;
         }
     }
 }
 
 #endif // SWARMLIST_REMOVE_OLD_ENTRIES
 
-uint8_t swarmlist_count() {
-    uint8_t count = 0;
+uint8_t swarmlist_num_active() {
+    // uint8_t count = 0;
 
-    for (uint8_t i = 0; i < swarmlist.size; ++i) {
-        if (swarmlist_entry_isactive(&swarmlist.data[i])) {
-            ++count;
-        }
-    }
+    // for (uint8_t i = 0; i < swarmlist->size; ++i) {
+    //     if (swarmlist_entry_isactive(&swarmlist->data[i])) {
+    //         ++count;
+    //     }
+    // }
 
-    return count;
+    // return count;
+    return swarmlist->num_active;
 }
 
 uint8_t lamport_isnewer(lamport8_t lamport, lamport8_t old_lamport) {
@@ -292,12 +286,13 @@ uint8_t lamport_isnewer(lamport8_t lamport, lamport8_t old_lamport) {
 
 void setup() {
     rand_seed(rand_hard());
+    open_resources();
     swarmlist_construct();
     swarmlist_update(kilo_uid, local_swarm_mask, local_lamport);
 }
 
 uint32_t n_loops = 0;
-uint8_t loops_till_tick = 1;
+uint16_t loops_till_tick = 1;
 uint16_t loops_till_next_chunk = 1;
 void loop() {
 
@@ -310,7 +305,7 @@ void loop() {
         send_next_swarm_chunk();
     }
 
-    switch(swarmlist_count() % 8) {
+    switch(swarmlist_num_active() % 8) {
         case 0: {
             LED(0,0,0);
             break;
@@ -354,7 +349,7 @@ void loop() {
 
     ++n_loops;
     if (kilo_uid == 0 && n_loops % 1000 == 0) {
-        printf("Robot #%d\t; Timesteps: %d\t; swarmlist size: %d\n", kilo_uid, n_loops, swarmlist.size);
+        printf("Robot #%d\t; Timesteps: %d\t; swarmlist size: %d\n", kilo_uid, n_loops, swarmlist->size);
     }
 
 }
@@ -371,4 +366,6 @@ int main() {
     kilo_message_rx = process_msg_rx;
 
     kilo_start(setup, loop);
+
+    return 0;
 }
