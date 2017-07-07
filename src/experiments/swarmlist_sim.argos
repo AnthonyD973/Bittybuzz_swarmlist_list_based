@@ -26,7 +26,8 @@
 
     <loop_functions
         label="exp_loop_func"
-        robots="4"
+        log="Exp.log"
+        robots="20"
         topology="line"/>
 
     <arena size="10,10,5" center="0,0,0.25">
@@ -52,7 +53,7 @@
     </arena>
 
     <media>
-        <kilobot_communication id="kilocomm" message_drop_prob="0"/>
+        <kilobot_communication id="kilocomm" message_drop_prob="0.75"/>
         <led id="leds"/>
     </media>
 
@@ -61,16 +62,16 @@
     </physics_engines>
 
     <visualization>
-        <qt-opengl>
-            <!--<camera>
+        <!--<qt-opengl>
+            <camera>
                 <placement
                     idx="0"
                     position="-0.136774,0.2,0.157987"
                     look_at="0.570333,0.2,-0.54912"
                     up="0.707107,0,0.707107"
                     lens_focal_length="20" />
-            </camera>-->
-        </qt-opengl>
+            </camera>
+        </qt-opengl>-->
     </visualization>
 
 </argos-configuration>

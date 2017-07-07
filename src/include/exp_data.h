@@ -20,6 +20,7 @@ extern "C" {
  */
 typedef struct {
     swarmlist_t swarmlist;
+    uint8_t num_msgs_in_timestep;
 } exp_data_t;
 
 #ifdef __cplusplus

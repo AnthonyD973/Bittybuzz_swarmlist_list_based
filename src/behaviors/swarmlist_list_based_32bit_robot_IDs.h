@@ -39,7 +39,7 @@ extern "C" {
  * The maximum number of swarm messages to send per swarm chunk.
  * We send less messages if we don't have enough data to send.
  */
-#define SWARM_CHUNK_AMOUNT 2
+#define SWARM_CHUNK_AMOUNT 1
 
 /**
  * The number of swarmlist ticks before a swarm entry
@@ -70,7 +70,7 @@ extern "C" {
  * @see SWARMLIST_TICKS_TO_INACTIVE
  * @see SWARMLIST_TICKS_TO_REMOVAL
  */
-#define LOOPS_PER_TICK 50
+#define LOOPS_PER_TICK 65535
 
 /**
  * The maximum number of ticks a Lamport clock sould be above an old
@@ -78,10 +78,20 @@ extern "C" {
  */
 #define LAMPORT_THRESHOLD 50
 
+// ==============================
+// =    SIMULATION METRICS      =
+// ==============================
 
-// ===============================
-// =      TYPE DEFINITIONS       =
-// ===============================
+/**
+ * Number of messages sent since the last (few) timestep(s).
+ * This value is cleared by the simulator ; the kilobot only
+ * has to increment it every time a message is sent.
+ */
+extern uint8_t* num_msgs_in_timestep;
+
+// ==============================
+// =     TYPE DEFINITIONS       =
+// ==============================
 
 /**
  * The type of a message.

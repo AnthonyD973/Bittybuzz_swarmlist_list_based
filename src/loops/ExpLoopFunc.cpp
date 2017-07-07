@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "ExpLoopFunc.h"
 
 /****************************************/
@@ -16,7 +18,12 @@ swlexp::ExpLoopFunc::~ExpLoopFunc() {
 /****************************************/
 /****************************************/
 
+using argos::CARGoSException; // Required because of the THROW_ARGOSEXCEPTION macro.
+
 void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
+    // Get arguments from configuration file.
+    std::string logName;
+    argos::GetNodeAttribute(t_tree, "log", logName);
     argos::UInt32 numRobots;
     argos::GetNodeAttribute(t_tree, "robots", numRobots);
     std::string topology;
@@ -24,13 +31,36 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     if (topology == "line") {
         _placeLine(numRobots);
     }
+    else {
+        THROW_ARGOSEXCEPTION("Unknown topology: " << topology);
+    }
+
+    // Get other experiment params
+    argos::TConfigurationNode media = argos::GetNode(GetSimulator().GetConfigurationRoot(), "media");
+    argos::TConfigurationNode kilocomm = argos::GetNode(media, "kilobot_communication");
+    argos::GetNodeAttributeOrDefault(kilocomm, "message_drop_prob", m_msgDropProb, 0.0);
+
+    // Open log file.
+    m_expLog.open(logName, std::ios::app);
+    if (m_expLog.fail()) {
+        THROW_ARGOSEXCEPTION("Could not open log file.");
+    }
+
+    // Write experiment params to log file.
+    m_expLog << "---EXPERIMENT START---\n"
+                "Number of robots: " << numRobots << "\n"
+                "Topology: " << topology << "\n" <<
+                "Drop probability: " << m_msgDropProb << "\n";
+    m_expLog.flush();
 }
 
 /****************************************/
 /****************************************/
 
 void swlexp::ExpLoopFunc::Destroy() {
-    // Nothing to do ; resources are closed when they get out of scope.
+    m_expLog.flush();
+
+    // Resources are closed when they get out of scope.
 }
 
 /****************************************/
@@ -47,7 +77,14 @@ void swlexp::ExpLoopFunc::Reset() {
 /****************************************/
 
 void swlexp::ExpLoopFunc::PostStep() {
+    static const argos::UInt32 STEPS_TO_MSG_CHECK = 30;
+    static argos::UInt32 stepsTillNumMsgCheck = 0;
 
+    if (stepsTillNumMsgCheck == 0) {
+        _checkNumMessages();
+        stepsTillNumMsgCheck = STEPS_TO_MSG_CHECK;
+    }
+    --stepsTillNumMsgCheck;
 }
 
 /****************************************/
@@ -60,7 +97,7 @@ bool swlexp::ExpLoopFunc::IsExperimentFinished() {
             return false;
         }
     }
-    argos::LOG << "Experiment finished. Timesteps taken: " << GetSpace().GetSimulationClock() << ".\n";
+    _finishExperiment();
     return true;
 }
 
@@ -79,6 +116,34 @@ void swlexp::ExpLoopFunc::_placeLine(argos::UInt32 numRobots) {
     }
 }
 
+/****************************************/
+/****************************************/
+
+void swlexp::ExpLoopFunc::_checkNumMessages() {
+    for (auto it = m_kilobotProcesses.begin(); it < m_kilobotProcesses.end(); ++it) {
+        uint8_t* numMsgs = &it->getExpData()->num_msgs_in_timestep;
+        m_numMsgsSent += *numMsgs;
+        *numMsgs = 0;
+    }
+}
+
+/****************************************/
+/****************************************/
+
+void swlexp::ExpLoopFunc::_finishExperiment() {
+    const argos::UInt32 NUM_KILOBOTS = m_kilobotProcesses.size();
+    _checkNumMessages();
+    double bw = ((double)m_numMsgsSent / GetSpace().GetSimulationClock() /
+                 NUM_KILOBOTS * 13.0);
+
+    argos::LOG << "Experiment finished.\n";
+    m_expLog << "---END---\n"
+                "Consensus (ts): " << GetSpace().GetSimulationClock() << "\n"
+                "Msgs sent (total): " << m_numMsgsSent << "\n"
+                "Avg. bandwidth (B/(ts*kb)): " << bw << "\n"
+                "\n";
+    m_expLog.flush();
+}
 
 /****************************************/
 /****************************************/

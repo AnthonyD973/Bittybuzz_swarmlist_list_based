@@ -16,7 +16,7 @@
 // =  GENERAL GLOBAL VARIABLES   =
 // ===============================
 
-swarmlist_t* swarmlist;
+swarmlist_t* swarmlist   = 0;
 uint8_t local_swarm_mask = 0x01;
 lamport8_t local_lamport = 0;
 
@@ -53,9 +53,9 @@ message_t* which_msg_tx() {
  * Number of swarmlist entries in a swarm message.
  */
 #define SWARM_ENTRY_SZ (                                                \
-        sizeof(swarmlist->data[0].robot) +                               \
-        sizeof(swarmlist->data[0].swarm_mask) +                          \
-        sizeof(swarmlist->data[0].lamport)                               \
+        sizeof(swarmlist->data[0].robot) +                              \
+        sizeof(swarmlist->data[0].swarm_mask) +                         \
+        sizeof(swarmlist->data[0].lamport)                              \
     )
 
 /**
@@ -85,6 +85,7 @@ void msg_tx_success() {
     // printf("#%d: sent #%d.\n", kilo_uid, *(robot_id_t*)&msg_tx.data[SWARM_ENTRY_SZ*0+ROBOT_ID_POS]);
     should_send_tx = 0;
     msg_tx_sent = 1;
+    ++*num_msgs_in_timestep;
 }
 void send_next_swarm_chunk() {
     if (swarmlist->size != 0) {
@@ -129,6 +130,11 @@ void send_next_swarm_chunk() {
             // printf("#%d: sending #%d.\n", kilo_uid, *(robot_id_t*)&msg_tx.data[SWARM_ENTRY_SZ*0+ROBOT_ID_POS]);
             msg_tx_busy_wait();
         }
+    }
+    else {
+        // printf("Current robot (ID %d): Own swarmlist entry \n"
+        //        "was deleted. Creating it again.\n");
+        swarmlist_update(kilo_uid, local_swarm_mask, local_lamport);
     }
 }
 
@@ -252,15 +258,6 @@ void swarmlist_tick() {
 #endif // SWARMLIST_REMOVE_OLD_ENTRIES
 
 uint8_t swarmlist_num_active() {
-    // uint8_t count = 0;
-
-    // for (uint8_t i = 0; i < swarmlist->size; ++i) {
-    //     if (swarmlist_entry_isactive(&swarmlist->data[i])) {
-    //         ++count;
-    //     }
-    // }
-
-    // return count;
     return swarmlist->num_active;
 }
 
