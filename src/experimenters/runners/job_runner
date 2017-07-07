@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Get experiment params
+ARGOS_IN="$1"
+ARGOS_OUT="$2"
+LOG_PATH="$3"
+BEHAVIOR_EXECUTABLE="$4"
+ROBOTS=$5
+TOPOLOGY=$6
+MESSAGE_DROP_PROB=$7
+
+# Generate argos file with the appropriate params
+sed -e "s|LOG_PATH|$LOG_PATH|g" \
+    -e "s|BEHAVIOR_EXECUTABLE|$BEHAVIOR_EXECUTABLE|g" \
+    -e "s|ROBOTS|$ROBOTS|g" \
+    -e "s|TOPOLOGY|$TOPOLOGY|g" \
+    -e "s|MESSAGE_DROP_PROB|$MESSAGE_DROP_PROB|g" \
+    "$ARGOS_IN" > "$ARGOS_OUT"
+
+# Run job
+argos3 -c "$ARGOS_OUT"

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Set vars
+GIT_ROOT=$(git rev-parse --show-toplevel)
+BINARY_DIR="$1"
+WD=$BINARY_DIR/argos
+
+# Go to working dir
+mkdir -p "$WD"
+cd "$WD"
+
+# Run single experiment
+ARGOS_IN="$GIT_ROOT/src/argos/swarmlist_sim.argos"
+ARGOS_OUT="$WD/foo.argos"
+LOG_PATH="$WD/exp.log"
+BEHAVIOR_EXECUTABLE="$BINARY_DIR/behaviors/swarmlist_list_based"
+
+("$GIT_ROOT/src/experimenters/runners/job_runner" \
+ "$ARGOS_IN" \
+ "$ARGOS_OUT" \
+ "$LOG_PATH" \
+ "$BEHAVIOR_EXECUTABLE" \
+ 15 line 0.75)

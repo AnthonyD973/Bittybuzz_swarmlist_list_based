@@ -20,15 +20,15 @@
                                        show_rays="true"/>
                 <kilobot_light implementation="rot_z_only"/>
             </sensors>
-            <params behavior="build/behaviors/swarmlist_list_based"/>
+            <params behavior="BEHAVIOR_EXECUTABLE"/>
         </kilobot_controller>
     </controllers>
 
     <loop_functions
         label="exp_loop_func"
-        log="Exp.log"
-        robots="20"
-        topology="line"/>
+        log="LOG_PATH"
+        robots="ROBOTS"
+        topology="TOPOLOGY"/>
 
     <arena size="10,10,5" center="0,0,0.25">
         <light id="l0"
@@ -53,7 +53,7 @@
     </arena>
 
     <media>
-        <kilobot_communication id="kilocomm" message_drop_prob="0.75"/>
+        <kilobot_communication id="kilocomm" message_drop_prob="MESSAGE_DROP_PROB"/>
         <led id="leds"/>
     </media>
 

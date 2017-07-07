@@ -1,20 +1,18 @@
 # Swarmlist List-Based
 
 Compiling
--------------
+---------
 
     $ mkdir build
     $ cd build
-    $ cmake ..
+    $ cmake ../src
     $ make
+    $ sudo make install
 
-Running an experiment
+Running the experiments
 -----------------------
 
-You must have [argos3](http://www.argos-sim.info) installed. Go to the git repository's root, and execute:
+You must have [argos3](http://www.argos-sim.info) installed, as well as its
+[kilobot extension](http://www.argos-sim.info/extensions.php). Execute:
 
-    $ argos3 -c src/experiments/<some_file.argos>
-
-For example:
-
-    $ argos3 -c src/experiments/swarmlist_sim.argos
+    $ make experiment

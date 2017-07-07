@@ -55,12 +55,6 @@ namespace swlexp {
     private:
 
         /**
-         * Experiment param. Specifies the probablility that a
-         * message that should have been received is dropped.
-         */
-        argos::Real m_msgDropProb;
-
-        /**
          * Shared memory maps between the ARGoS and the kilobot processes.
          * This allows ARGoS to gather data about the kilobots' state, for example
          * to know when the experiment is finished.
@@ -77,6 +71,17 @@ namespace swlexp {
          * of the experiment.
          */
         argos::UInt64 m_numMsgsSent = 0;
+
+        /**
+         * Experiment param. Specifies the probablility that a
+         * message that should have been received is dropped.
+         */
+        argos::Real m_msgDropProb;
+
+        /**
+         * Path to the experiment's log file.
+         */
+         std::string m_expLogName;
 
     };
 

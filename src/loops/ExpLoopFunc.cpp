@@ -22,8 +22,7 @@ using argos::CARGoSException; // Required because of the THROW_ARGOSEXCEPTION ma
 
 void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     // Get arguments from configuration file.
-    std::string logName;
-    argos::GetNodeAttribute(t_tree, "log", logName);
+    argos::GetNodeAttribute(t_tree, "log", m_expLogName);
     argos::UInt32 numRobots;
     argos::GetNodeAttribute(t_tree, "robots", numRobots);
     std::string topology;
@@ -41,7 +40,7 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     argos::GetNodeAttributeOrDefault(kilocomm, "message_drop_prob", m_msgDropProb, 0.0);
 
     // Open log file.
-    m_expLog.open(logName, std::ios::app);
+    m_expLog.open(m_expLogName, std::ios::app);
     if (m_expLog.fail()) {
         THROW_ARGOSEXCEPTION("Could not open log file.");
     }
@@ -136,7 +135,8 @@ void swlexp::ExpLoopFunc::_finishExperiment() {
     double bw = ((double)m_numMsgsSent / GetSpace().GetSimulationClock() /
                  NUM_KILOBOTS * 13.0);
 
-    argos::LOG << "Experiment finished.\n";
+    argos::LOG << "Experiment finished. See \"" << m_expLogName << "\" for results.\n";
+
     m_expLog << "---END---\n"
                 "Consensus (ts): " << GetSpace().GetSimulationClock() << "\n"
                 "Msgs sent (total): " << m_numMsgsSent << "\n"
