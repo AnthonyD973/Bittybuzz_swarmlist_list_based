@@ -22,9 +22,10 @@ using argos::CARGoSException; // Required because of the THROW_ARGOSEXCEPTION ma
 
 void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     // Get arguments from configuration file.
+    argos::GetNodeAttribute(t_tree, "res", m_expResName);
     argos::GetNodeAttribute(t_tree, "log", m_expLogName);
     argos::UInt32 numRobots;
-    argos::GetNodeAttribute(t_tree, "robots", numRobots);
+    argos::GetNodeAttribute(t_tree, "num_robots", numRobots);
     std::string topology;
     argos::GetNodeAttribute(t_tree, "topology", topology);
     if (topology == "line") {
@@ -39,16 +40,25 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     argos::TConfigurationNode kilocomm = argos::GetNode(media, "kilobot_communication");
     argos::GetNodeAttributeOrDefault(kilocomm, "message_drop_prob", m_msgDropProb, 0.0);
 
-    // Open log file.
+    // Open result and log files.
+    m_expRes.open(m_expResName, std::ios::app);
+    if (m_expRes.fail()) {
+        THROW_ARGOSEXCEPTION("Could not open CSV file \"" << m_expResName << "\".");
+    }
     m_expLog.open(m_expLogName, std::ios::app);
     if (m_expLog.fail()) {
-        THROW_ARGOSEXCEPTION("Could not open log file.");
+        THROW_ARGOSEXCEPTION("Could not open log file \"" << m_expLogName << "\".");
     }
 
-    // Write experiment params to log file.
+    // Write experiment params to result and log files.
+    m_expRes << '\n' <<
+                topology      << CSV_DELIM <<
+                numRobots     << CSV_DELIM <<
+                m_msgDropProb;
+
     m_expLog << "---EXPERIMENT START---\n"
-                "Number of robots: " << numRobots << "\n"
                 "Topology: " << topology << "\n" <<
+                "Number of robots: " << numRobots << "\n"
                 "Drop probability: " << m_msgDropProb << "\n";
     m_expLog.flush();
 }
@@ -133,16 +143,22 @@ void swlexp::ExpLoopFunc::_finishExperiment() {
     const argos::UInt32 NUM_KILOBOTS = m_kilobotProcesses.size();
     _checkNumMessages();
     double bw = ((double)m_numMsgsSent / GetSpace().GetSimulationClock() /
-                 NUM_KILOBOTS * 13.0);
+                 NUM_KILOBOTS * 13);
+    double bw_rx = bw * (1.0 - m_msgDropProb);
 
-    argos::LOG << "Experiment finished. See \"" << m_expLogName << "\" for results.\n";
-
+    m_expRes << CSV_DELIM << GetSpace().GetSimulationClock() <<
+                CSV_DELIM << m_numMsgsSent <<
+                CSV_DELIM << bw <<
+                CSV_DELIM << bw_rx;
     m_expLog << "---END---\n"
                 "Consensus (ts): " << GetSpace().GetSimulationClock() << "\n"
                 "Msgs sent (total): " << m_numMsgsSent << "\n"
                 "Avg. bandwidth (B/(ts*kb)): " << bw << "\n"
+                "Avg. received bandwidth (B/(ts*kb)): " << bw_rx << "\n"
                 "\n";
     m_expLog.flush();
+
+    argos::LOG << "Experiment finished. See \"" << m_expLogName << "\" for results.\n";
 }
 
 /****************************************/

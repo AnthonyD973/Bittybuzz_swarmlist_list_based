@@ -48,6 +48,16 @@ message_t* which_msg_tx() {
     return 0;
 }
 
+/**
+ * Called when a message has been sent.
+ */
+void msg_tx_success() {
+    // printf("#%d: sent #%d.\n", kilo_uid, *(robot_id_t*)&msg_tx.data[SWARM_ENTRY_SZ*0+ROBOT_ID_POS]);
+    should_send_tx = 0;
+    msg_tx_sent = 1;
+    ++*num_msgs_in_timestep;
+}
+
 
 /**
  * Number of swarmlist entries in a swarm message.
@@ -81,12 +91,6 @@ message_t* which_msg_tx() {
  */
 #define LAMPORT_POS (SWARM_MASK_POS + sizeof(swarmlist->data[0].swarm_mask))
 
-void msg_tx_success() {
-    // printf("#%d: sent #%d.\n", kilo_uid, *(robot_id_t*)&msg_tx.data[SWARM_ENTRY_SZ*0+ROBOT_ID_POS]);
-    should_send_tx = 0;
-    msg_tx_sent = 1;
-    ++*num_msgs_in_timestep;
-}
 void send_next_swarm_chunk() {
     if (swarmlist->size != 0) {
         // Send several swarm messages
@@ -128,7 +132,7 @@ void send_next_swarm_chunk() {
             msg_tx.crc = message_crc(&msg_tx);
             should_send_tx = 1;
             // printf("#%d: sending #%d.\n", kilo_uid, *(robot_id_t*)&msg_tx.data[SWARM_ENTRY_SZ*0+ROBOT_ID_POS]);
-            msg_tx_busy_wait();
+            // msg_tx_busy_wait();
         }
     }
     else {

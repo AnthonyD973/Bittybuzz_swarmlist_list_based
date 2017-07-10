@@ -62,6 +62,23 @@ namespace swlexp {
         std::vector<swlexp::KilobotProcess> m_kilobotProcesses;
 
         /**
+         * Path to the experiment's param & result file.
+         */
+        std::string m_expResName;
+
+        /**
+         * File that will contain the experiment's parameters and its results.
+         * This is a CSV file that can be opened with LibreOffice Calc
+         * (possibly also MS Excel).
+         */
+        std::ofstream m_expRes;
+
+        /**
+         * Path to the experiment's log file.
+         */
+        std::string m_expLogName;
+
+        /**
          * Log file that will contain data about the experiment.
          */
         std::ofstream m_expLog;
@@ -79,9 +96,9 @@ namespace swlexp {
         argos::Real m_msgDropProb;
 
         /**
-         * Path to the experiment's log file.
+         * Delimiter of the CSV file.
          */
-         std::string m_expLogName;
+        static const char CSV_DELIM=',';
 
     };
 

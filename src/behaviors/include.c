@@ -1,5 +1,7 @@
 #include <sys/mman.h> // shm_open, shm_unlink
+#include <sys/stat.h> // S_IRUSR, S_IWUSR (in some configurations)
 #include <fcntl.h>    // O_RDWR, O_CREAT, S_IRUSR, S_IWUSR
+#include <errno.h>    // errno
 #include <unistd.h>   // ftruncate
 #include <malloc.h>   // malloc
 #include <string.h>   // sprintf
@@ -26,7 +28,10 @@ void exp_sigterm_handler(int i) {
     munmap(exp_data, sizeof(*exp_data));
     close(exp_data_fd);
     shm_unlink(exp_data_name);
+    free(exp_data_name);
 }
+
+exp_data_t exp_d;
 
 void open_resources() {
     // Invent a memory object name by using the kilo_uid.
@@ -49,6 +54,7 @@ void open_resources() {
         num_msgs_in_timestep = &exp_data->num_msgs_in_timestep;
     }
     else {
+        fprintf(stderr, "ERROR for kilobot #%d: %s", kilo_uid, strerror(errno));
         swarmlist = 0;
         num_msgs_in_timestep = 0;
     }

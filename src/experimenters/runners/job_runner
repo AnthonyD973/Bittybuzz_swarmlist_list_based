@@ -3,19 +3,26 @@
 # Get experiment params
 ARGOS_IN="$1"
 ARGOS_OUT="$2"
-LOG_PATH="$3"
-BEHAVIOR_EXECUTABLE="$4"
-ROBOTS=$5
-TOPOLOGY=$6
-MESSAGE_DROP_PROB=$7
+BEHAVIOR_EXECUTABLE="$3"
+RES_FILE="$4"
+LOG_FILE="$5"
+NUM_TRIES=$6
+TOPOLOGY=$7
+NUM_ROBOTS=$8
+MSG_DROP_PROB=$9
 
 # Generate argos file with the appropriate params
-sed -e "s|LOG_PATH|$LOG_PATH|g" \
-    -e "s|BEHAVIOR_EXECUTABLE|$BEHAVIOR_EXECUTABLE|g" \
-    -e "s|ROBOTS|$ROBOTS|g" \
+sed -e "s|BEHAVIOR_EXECUTABLE|$BEHAVIOR_EXECUTABLE|g" \
+    -e "s|RES_FILE|$RES_FILE|g" \
+    -e "s|LOG_FILE|$LOG_FILE|g" \
     -e "s|TOPOLOGY|$TOPOLOGY|g" \
-    -e "s|MESSAGE_DROP_PROB|$MESSAGE_DROP_PROB|g" \
+    -e "s|NUM_ROBOTS|$NUM_ROBOTS|g" \
+    -e "s|MSG_DROP_PROB|$MSG_DROP_PROB|g" \
     "$ARGOS_IN" > "$ARGOS_OUT"
 
-# Run job
-argos3 -c "$ARGOS_OUT"
+# Run jobs (in background)
+i=0
+while [ $i -lt $NUM_TRIES ]; do
+    argos3 -c "$ARGOS_OUT"
+    i=$(($i+1))
+done

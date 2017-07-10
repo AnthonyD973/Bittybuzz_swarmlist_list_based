@@ -3,21 +3,50 @@
 # Set vars
 GIT_ROOT=$(git rev-parse --show-toplevel)
 BINARY_DIR="$1"
-WD=$BINARY_DIR/argos
+WD="$BINARY_DIR/experiment"
 
 # Go to working dir
 mkdir -p "$WD"
 cd "$WD"
 
-# Run single experiment
-ARGOS_IN="$GIT_ROOT/src/argos/swarmlist_sim.argos"
-ARGOS_OUT="$WD/foo.argos"
-LOG_PATH="$WD/exp.log"
-BEHAVIOR_EXECUTABLE="$BINARY_DIR/behaviors/swarmlist_list_based"
+# Remove existing simulation results
+rm -rf ./*
 
-("$GIT_ROOT/src/experimenters/runners/job_runner" \
- "$ARGOS_IN" \
- "$ARGOS_OUT" \
- "$LOG_PATH" \
- "$BEHAVIOR_EXECUTABLE" \
- 15 line 0.75)
+# Experiments
+ARGOS_IN="$GIT_ROOT/src/argos/swarmlist_sim.argos"
+FINAL_RES_CSV="$WD/res.csv"
+BEHAVIOR_EXECUTABLE="$BINARY_DIR/behaviors/swarmlist_list_based"
+NUM_TRIES=2
+
+for TOPOLOGY in line # TODO Add more topologies
+do
+    for NUM_ROBOTS in {10..20..10}
+    do
+        for MSG_DROP_PROB in 0.00 0.25 0.50 0.75
+        do
+            EXP_DIR="$WD/exp_${TOPOLOGY}Topology_${NUM_ROBOTS}Robots_${MSG_DROP_PROB}MsgDropProb"
+            mkdir -p "$EXP_DIR"
+            RES_FILE="$EXP_DIR/res.csv"
+            LOG_FILE="$EXP_DIR/log.txt"
+            ARGOS_OUT="$EXP_DIR/config.argos"
+
+            # Run experiment
+            ("$GIT_ROOT/src/experimenters/runners/job_runner" \
+            "$ARGOS_IN" \
+            "$ARGOS_OUT" \
+            "$BEHAVIOR_EXECUTABLE" \
+            "$RES_FILE" \
+            "$LOG_FILE" \
+            $NUM_TRIES \
+            $TOPOLOGY $NUM_ROBOTS $MSG_DROP_PROB) &
+        done
+    done
+done
+
+# Concatenate smaller CSV files into a single one.
+RESULT_CSV_FILES=$(find -type f -name "res.csv" | sort -z)
+echo -n "Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Avg. bandwidth (B/(timestep*kilobot)),Approx. avg. received bandwidth (B/(timestep*kilobot))" > $FINAL_RES_CSV
+for res in $RESULT_CSV_FILES
+do
+    cat $res | tail -n +1 >> $FINAL_RES_CSV
+done

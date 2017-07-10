@@ -26,8 +26,9 @@
 
     <loop_functions
         label="exp_loop_func"
-        log="LOG_PATH"
-        robots="ROBOTS"
+        res="RES_FILE"
+        log="LOG_FILE"
+        num_robots="NUM_ROBOTS"
         topology="TOPOLOGY"/>
 
     <arena size="10,10,5" center="0,0,0.25">
@@ -53,7 +54,7 @@
     </arena>
 
     <media>
-        <kilobot_communication id="kilocomm" message_drop_prob="MESSAGE_DROP_PROB"/>
+        <kilobot_communication id="kilocomm" message_drop_prob="MSG_DROP_PROB"/>
         <led id="leds"/>
     </media>
 
