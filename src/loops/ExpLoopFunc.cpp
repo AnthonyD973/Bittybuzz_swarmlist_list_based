@@ -24,6 +24,7 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     // Get arguments from configuration file.
     argos::GetNodeAttribute(t_tree, "res", m_expResName);
     argos::GetNodeAttribute(t_tree, "log", m_expLogName);
+    argos::GetNodeAttribute(t_tree, "kb_csv_dir", m_kbCsvDir);
     argos::UInt32 numRobots;
     argos::GetNodeAttribute(t_tree, "num_robots", numRobots);
     std::string topology;
@@ -86,14 +87,7 @@ void swlexp::ExpLoopFunc::Reset() {
 /****************************************/
 
 void swlexp::ExpLoopFunc::PostStep() {
-    static const argos::UInt32 STEPS_TO_MSG_CHECK = 30;
-    static argos::UInt32 stepsTillNumMsgCheck = 0;
 
-    if (stepsTillNumMsgCheck == 0) {
-        _checkNumMessages();
-        stepsTillNumMsgCheck = STEPS_TO_MSG_CHECK;
-    }
-    --stepsTillNumMsgCheck;
 }
 
 /****************************************/
@@ -136,20 +130,10 @@ void swlexp::ExpLoopFunc::_placeLine(argos::UInt32 numRobots) {
     for (argos::UInt32 i = 0; i < numRobots; ++i) {
         argos::CVector3 pos = argos::CVector3(0, maxY - i * 0.06, 0);
         argos::CQuaternion orient = argos::CQuaternion();
-
-        swlexp::KilobotProcess&& kProc = KilobotProcess(*this, i, "kb_ctrl", pos, orient);
+        
+        std::string kilobotCsv = m_kbCsvDir + "/kb" + std::to_string(i) + ".csv";
+        swlexp::KilobotProcess&& kProc = KilobotProcess(*this, i, "kb_ctrl", pos, orient, kilobotCsv);
         m_kilobotProcesses.push_back(std::move(kProc));
-    }
-}
-
-/****************************************/
-/****************************************/
-
-void swlexp::ExpLoopFunc::_checkNumMessages() {
-    for (auto it = m_kilobotProcesses.begin(); it < m_kilobotProcesses.end(); ++it) {
-        uint8_t* numMsgs = &it->getExpData()->num_msgs_in_timestep;
-        m_numMsgsSent += *numMsgs;
-        *numMsgs = 0;
     }
 }
 
@@ -158,19 +142,24 @@ void swlexp::ExpLoopFunc::_checkNumMessages() {
 
 void swlexp::ExpLoopFunc::_finishExperiment() {
     const argos::UInt32 NUM_KILOBOTS = m_kilobotProcesses.size();
-    _checkNumMessages();
-    double bw = ((double)m_numMsgsSent / GetSpace().GetSimulationClock() /
-                 NUM_KILOBOTS * 13);
-    double bw_rx = bw * (1.0 - m_msgDropProb);
+    const argos::UInt64 NUM_MSGS_TX  = KilobotProcess::getTotalNumMessagesTx();
+    const argos::UInt64 NUM_MSGS_RX  = KilobotProcess::getTotalNumMessagesRx();
+    double bw_tx    = ((double)NUM_MSGS_TX / GetSpace().GetSimulationClock() /
+                   NUM_KILOBOTS) * 13;
+    double bw_rx = ((double)NUM_MSGS_RX / GetSpace().GetSimulationClock() /
+                   NUM_KILOBOTS) * 13;
 
     m_expRes << CSV_DELIM << GetSpace().GetSimulationClock() <<
-                CSV_DELIM << m_numMsgsSent <<
-                CSV_DELIM << bw <<
+                CSV_DELIM << NUM_MSGS_TX <<
+                CSV_DELIM << NUM_MSGS_RX <<
+                CSV_DELIM << bw_tx <<
                 CSV_DELIM << bw_rx;
+    m_expRes.flush();
     m_expLog << "---END---\n"
                 "Consensus (ts): " << GetSpace().GetSimulationClock() << "\n"
-                "Msgs sent (total): " << m_numMsgsSent << "\n"
-                "Avg. bandwidth (B/(ts*kb)): " << bw << "\n"
+                "Msgs sent (total): " << NUM_MSGS_TX << "\n"
+                "Msgs received (total): " << NUM_MSGS_RX << "\n"
+                "Avg. sent bandwidth (B/(ts*kb)): " << bw_tx << "\n"
                 "Avg. received bandwidth (B/(ts*kb)): " << bw_rx << "\n"
                 "\n";
     m_expLog.flush();

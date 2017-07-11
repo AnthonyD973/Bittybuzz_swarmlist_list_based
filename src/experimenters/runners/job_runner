@@ -1,28 +1,33 @@
 #!/bin/bash
 
 # Get experiment params
-ARGOS_IN="$1"
-ARGOS_OUT="$2"
-BEHAVIOR_EXECUTABLE="$3"
-RES_FILE="$4"
-LOG_FILE="$5"
-NUM_TRIES=$6
-TOPOLOGY=$7
-NUM_ROBOTS=$8
-MSG_DROP_PROB=$9
-
-# Generate argos file with the appropriate params
-sed -e "s|BEHAVIOR_EXECUTABLE|$BEHAVIOR_EXECUTABLE|g" \
-    -e "s|RES_FILE|$RES_FILE|g" \
-    -e "s|LOG_FILE|$LOG_FILE|g" \
-    -e "s|TOPOLOGY|$TOPOLOGY|g" \
-    -e "s|NUM_ROBOTS|$NUM_ROBOTS|g" \
-    -e "s|MSG_DROP_PROB|$MSG_DROP_PROB|g" \
-    "$ARGOS_IN" > "$ARGOS_OUT"
+ARGOS_IN="${1}"
+ARGOS_OUT="${2}"
+BEHAVIOR_EXECUTABLE="${3}"
+RES_FILE="${4}"
+LOG_FILE="${5}"
+KILOBOT_CSV_BASEDIR="${6}"
+NUM_TRIES=${7}
+TOPOLOGY=${8}
+NUM_ROBOTS=${9}
+MSG_DROP_PROB=${10}
 
 # Run jobs (in background)
-i=0
-while [ $i -lt $NUM_TRIES ]; do
+i=1
+while [ $i -le $NUM_TRIES ]; do
+    KILOBOT_CSV_DIR="${KILOBOT_CSV_BASEDIR}-exp${i}"
+    mkdir -p "$KILOBOT_CSV_DIR"
+
+    # Generate argos file with the appropriate params
+    sed -e "s|BEHAVIOR_EXECUTABLE|$BEHAVIOR_EXECUTABLE|g" \
+        -e "s|RES_FILE|$RES_FILE|g" \
+        -e "s|LOG_FILE|$LOG_FILE|g" \
+        -e "s|KILOBOT_CSV_DIR|$KILOBOT_CSV_DIR|g" \
+        -e "s|TOPOLOGY|$TOPOLOGY|g" \
+        -e "s|NUM_ROBOTS|$NUM_ROBOTS|g" \
+        -e "s|MSG_DROP_PROB|$MSG_DROP_PROB|g" \
+        "$ARGOS_IN" > "$ARGOS_OUT"
+
     argos3 -c "$ARGOS_OUT"
     i=$(($i+1))
 done

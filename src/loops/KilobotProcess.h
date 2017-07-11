@@ -9,6 +9,7 @@
 
 #include <argos3/core/simulator/loop_functions.h>
 #include <argos3/plugins/robots/kilobot/simulator/kilobot_entity.h>
+#include <unordered_set>
 
 #include "include/exp_data.h"
 
@@ -34,12 +35,14 @@ namespace swlexp {
          * one of those in the ARGoS file.
          * @param[in] position Initial position of the kilobot.
          * @param[in] orientation Initial orientation of the kilobot.
+         * @param[in] kilobotCsv Csv file that this kilobot can write to.
          */
         KilobotProcess(argos::CLoopFunctions& loopFunc,
                        argos::UInt32 id,
                        const std::string& controllerId,
                        const argos::CVector3& position,
-                       const argos::CQuaternion& orientation);
+                       const argos::CQuaternion& orientation,
+                       const std::string& kilobotCsv);
 
         KilobotProcess(KilobotProcess&& other);
         KilobotProcess& operator=(KilobotProcess&& other);
@@ -53,7 +56,7 @@ namespace swlexp {
 
 
         // Getters
-        
+
         inline
         std::string getControllerId() { return m_controllerId; }
 
@@ -63,9 +66,38 @@ namespace swlexp {
         inline
         const exp_data_t* getExpData() const { return m_expData; }
 
-        // Other function
+
+        /**
+         * Gets the number of messages sent by the kilobot of this process.
+         */
+        inline
+        argos::UInt64 getNumMessagesTx() const { return m_expData->num_msgs_tx; }
+
+        /**
+         * Gets the number of messages received by the kilobot of this process.
+         */
+        inline
+        argos::UInt64 getNumMessagesRx() const { return m_expData->num_msgs_rx; }
+
+        static
+        argos::UInt64 getTotalNumMessagesTx();
+
+        static
+        argos::UInt64 getTotalNumMessagesRx();
+
+        // Other functions
 
         void reset();
+    
+    private:
+
+        inline static
+        argos::UInt64 _msgTxElemSum(argos::UInt64 lhs, const swlexp::KilobotProcess* rhs)
+        { return lhs + rhs->getNumMessagesTx(); }
+
+        inline static
+        argos::UInt64 _msgRxElemSum(argos::UInt64 lhs, const swlexp::KilobotProcess* rhs)
+        { return lhs + rhs->getNumMessagesRx(); }
 
     // ==============================
     // =         ATTRIBUTES         =
@@ -78,6 +110,14 @@ namespace swlexp {
         std::string m_expDataName;         ///< Name of the shared memory map.
         int m_expDataFd;                   ///< File descriptor for the memory map file.
         exp_data_t* m_expData;             ///< Pointer to the shared memory maps.
+
+    // ==============================
+    // =       STATIC MEMBERS       =
+    // ==============================
+
+    private:
+
+        static std::unordered_set<KilobotProcess*> c_processes; ///< Existing processes.
 
     };
 

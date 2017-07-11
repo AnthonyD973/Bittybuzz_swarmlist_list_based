@@ -55,7 +55,7 @@ void msg_tx_success() {
     // printf("#%d: sent #%d.\n", kilo_uid, *(robot_id_t*)&msg_tx.data[SWARM_ENTRY_SZ*0+ROBOT_ID_POS]);
     should_send_tx = 0;
     msg_tx_sent = 1;
-    ++*num_msgs_in_timestep;
+    ++*num_msgs_tx;
 }
 
 
@@ -94,11 +94,11 @@ void msg_tx_success() {
 void send_next_swarm_chunk() {
     if (swarmlist->size != 0) {
         // Send several swarm messages
-        const uint8_t NUM_MSGS = (swarmlist->size / NUM_ENTRIES_PER_SWARM_MSG + 1 >= SWARM_CHUNK_AMOUNT) ?
+        const uint8_t num_msgs_tx = (swarmlist->size / NUM_ENTRIES_PER_SWARM_MSG + 1 >= SWARM_CHUNK_AMOUNT) ?
                                  (SWARM_CHUNK_AMOUNT) :
                                  (swarmlist->size / NUM_ENTRIES_PER_SWARM_MSG + 1);
 
-        for (uint8_t i = 0; i < NUM_MSGS; ++i) {
+        for (uint8_t i = 0; i < num_msgs_tx; ++i) {
             // Send a swarm message
             msg_tx.type = SWARM;
             for (uint8_t j = 0; j < NUM_ENTRIES_PER_SWARM_MSG; ++j) {
@@ -153,6 +153,7 @@ void process_msg_rx(message_t* msg_rx, distance_measurement_t* d) {
         }
         default: LED(3,0,3); delay(65535); break;
     }
+    ++*num_msgs_rx;
 }
 
 void process_msg_rx_swarm(message_t* msg_rx) {
@@ -257,7 +258,11 @@ void loop() {
 
     ++n_loops;
     if (kilo_uid == 0 && n_loops % 1000 == 0) {
-        printf("Robot #%d\t; Timesteps: %d\t; swarmlist size: %d\n", kilo_uid, n_loops, swarmlist->size);fflush(stdout);
+        printf("Robot #%d\t; Timesteps: %d\t; swarmlist size: %d\n", kilo_uid, n_loops, swarmlist->size);
+        fflush(stdout);
+    }
+    if (n_loops % 100 == 0) {
+        log_status();
     }
 
 }

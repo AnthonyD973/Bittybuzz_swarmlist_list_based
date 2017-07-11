@@ -17,7 +17,7 @@ extern "C" {
 #define sei()
 
 void open_resources();
-
+void log_status();
 
 #ifdef __cplusplus
 }

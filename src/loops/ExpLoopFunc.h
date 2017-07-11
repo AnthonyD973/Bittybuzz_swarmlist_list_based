@@ -38,11 +38,6 @@ namespace swlexp {
         void _placeLine(argos::UInt32 numRobots);
 
         /**
-         * Updates the number of messages sent by all kilobots using the shared memory.
-         */
-        void _checkNumMessages();
-
-        /**
          * Finishes the experiment, in effect writing experiment data to the log
          * file.
          */
@@ -84,10 +79,9 @@ namespace swlexp {
         std::ofstream m_expLog;
 
         /**
-         * Number of packets sent by all kilobots since the beginning
-         * of the experiment.
+         * Directory in which the kilobot csv files are.
          */
-        argos::UInt64 m_numMsgsSent = 0;
+        std::string m_kbCsvDir;
 
         /**
          * Experiment param. Specifies the probablility that a

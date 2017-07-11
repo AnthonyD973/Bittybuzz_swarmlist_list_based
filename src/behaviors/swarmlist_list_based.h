@@ -83,11 +83,14 @@ extern "C" {
 // ==============================
 
 /**
- * Number of messages sent since the last (few) timestep(s).
- * This value is cleared by the simulator ; the kilobot only
- * has to increment it every time a message is sent.
+ * Number of messages sent since the beginning of the experiment.
  */
-extern uint8_t* num_msgs_in_timestep;
+extern uint64_t* num_msgs_tx;
+
+/**
+ * Number of messages received since the beginning of the experiment.
+ */
+extern uint64_t* num_msgs_rx;
 
 // ==============================
 // =     TYPE DEFINITIONS       =

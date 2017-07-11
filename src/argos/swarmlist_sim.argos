@@ -28,6 +28,7 @@
         label="exp_loop_func"
         res="RES_FILE"
         log="LOG_FILE"
+        kb_csv_dir="KILOBOT_CSV_DIR"
         num_robots="NUM_ROBOTS"
         topology="TOPOLOGY"/>
 

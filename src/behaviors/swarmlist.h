@@ -91,6 +91,13 @@ uint8_t swarmlist_num_active() { return swarmlist->num_active; }
  */
 void swarmlist_tick();
 
+/**
+ * Calls a function for each existing entry of the swarmlist.
+ * @param[in] elem_funp Function to call on each element.
+ * @param[in,out] params Parameters to the foreach
+ */
+void swarmlist_foreach(void (*elem_funp)(const swarmlist_entry_t * entry, void* params), void* params);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

@@ -181,6 +181,12 @@ void swarmlist_tick() {
 
 #endif // SWARMLIST_REMOVE_OLD_ENTRIES
 
+void swarmlist_foreach(void (*elem_funp)(const swarmlist_entry_t * entry, void* params), void* params) {
+    for (auto it = data_by_index.begin(); it < data_by_index.end(); ++it) {
+        elem_funp(&*it, params);
+    }
+}
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

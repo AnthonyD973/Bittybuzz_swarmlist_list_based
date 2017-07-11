@@ -2,8 +2,13 @@
 #include <fcntl.h>    // O_RDWR, O_CREAT, S_IRUSR, S_IWUSR
 #include <unistd.h>   // ftruncate
 #include <cerrno>     // strerror, errno
+#include <algorithm>  // std::for_each
 
 #include "KilobotProcess.h"
+
+namespace swlexp {
+    std::unordered_set<KilobotProcess*> KilobotProcess::c_processes;
+}
 
 /****************************************/
 /****************************************/
@@ -15,7 +20,8 @@ swlexp::KilobotProcess::KilobotProcess(
     argos::UInt32 id,
     const std::string& controllerId,
     const argos::CVector3& position,
-    const argos::CQuaternion& orientation)
+    const argos::CQuaternion& orientation,
+    const std::string& kilobotCsv)
 
     : m_loopFunc(&loopFunc)
     , m_controllerId(controllerId)
@@ -34,7 +40,7 @@ swlexp::KilobotProcess::KilobotProcess(
     // Create experiment data
     m_expDataName = "/exp_data" + std::to_string(id);
     m_expDataFd = ::shm_open(m_expDataName.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-    int truncRet = ::ftruncate(m_expDataFd, sizeof(exp_data_t));
+    int truncRet = ::ftruncate(m_expDataFd, sizeof(exp_data_t) + kilobotCsv.size() + 1);
     if (truncRet >= 0) {
         m_expData = reinterpret_cast<exp_data_t*>(
             ::mmap(NULL,
@@ -47,6 +53,12 @@ swlexp::KilobotProcess::KilobotProcess(
     else {
         THROW_ARGOSEXCEPTION("Error acquiring experiment data: " << ::strerror(errno));
     }
+
+    // Set path to kilobot csv.
+    strcpy(m_expData->csv_path, kilobotCsv.c_str());
+
+    // Add this process to the list of processes.
+    c_processes.insert(this);
 }
 
 /****************************************/
@@ -62,6 +74,8 @@ swlexp::KilobotProcess::KilobotProcess(swlexp::KilobotProcess&& other)
     other.m_loopFunc  = nullptr;
     other.m_expDataFd = -1;
     other.m_expData   = nullptr;
+    c_processes.erase(&other);
+    c_processes.insert(this);
 }
 
 /****************************************/
@@ -87,6 +101,8 @@ swlexp::KilobotProcess& swlexp::KilobotProcess::operator=(swlexp::KilobotProcess
         other.m_loopFunc  = nullptr;
         other.m_expDataFd = -1;
         other.m_expData   = nullptr;
+        c_processes.erase(&other);
+        c_processes.insert(this);
     }
     return *this;
 }
@@ -100,6 +116,7 @@ swlexp::KilobotProcess::~KilobotProcess() {
         ::close(m_expDataFd);
         ::shm_unlink(m_expDataName.c_str());
     }
+    c_processes.erase(this);
 }
 
 /****************************************/
@@ -110,4 +127,18 @@ void swlexp::KilobotProcess::reset() {
     for (argos::UInt32 i = 0; i < sizeof(exp_data_t); ++i) {
         ((char*)m_expData)[i] = 0;
     }
+}
+
+/****************************************/
+/****************************************/
+
+argos::UInt64 swlexp::KilobotProcess::getTotalNumMessagesTx() {
+    return std::accumulate(c_processes.begin(), c_processes.end(), 0, _msgTxElemSum);
+}
+
+/****************************************/
+/****************************************/
+
+argos::UInt64 swlexp::KilobotProcess::getTotalNumMessagesRx() {
+    return std::accumulate(c_processes.begin(), c_processes.end(), 0, _msgTxElemSum);
 }

@@ -22,7 +22,7 @@ NUM_TRIES=2
 
 for TOPOLOGY in line # TODO Add more topologies
 do
-    for NUM_ROBOTS in {10..50..10}
+    for NUM_ROBOTS in {10..20..10}
     do
         for MSG_DROP_PROB in 0.00 0.25 0.50 0.75
         do
@@ -30,6 +30,7 @@ do
             mkdir -p "$EXP_DIR"
             RES_FILE="$EXP_DIR/res.csv"
             LOG_FILE="$EXP_DIR/log.txt"
+            KILOBOT_CSV_BASEDIR="$EXP_DIR/kilobot-csv"
             ARGOS_OUT="$EXP_DIR/config.argos"
 
             # Run experiment
@@ -39,6 +40,7 @@ do
             "$BEHAVIOR_EXECUTABLE" \
             "$RES_FILE" \
             "$LOG_FILE" \
+            "$KILOBOT_CSV_BASEDIR" \
             $NUM_TRIES \
             $TOPOLOGY $NUM_ROBOTS $MSG_DROP_PROB)
         done
@@ -47,7 +49,7 @@ done
 
 # Concatenate smaller CSV files into a single one.
 RESULT_CSV_FILES=$(find -type f -name "res.csv" | sort -z)
-echo -n "Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Avg. bandwidth (B/(timestep*kilobot)),Approx. avg. received bandwidth (B/(timestep*kilobot))" > $FINAL_RES_CSV
+echo -n "Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Messages received (total),Avg. bandwidth (B/(timestep*kilobot)),Avg. received bandwidth (B/(timestep*kilobot))" > $FINAL_RES_CSV
 for res in $RESULT_CSV_FILES
 do
     cat $res | tail -n +1 >> $FINAL_RES_CSV

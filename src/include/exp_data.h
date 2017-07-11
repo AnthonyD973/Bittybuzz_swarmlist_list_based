@@ -19,8 +19,10 @@ extern "C" {
  * Data shared between the controller and the behavior processes.
  */
 typedef struct {
-    swarmlist_t swarmlist;
-    uint8_t num_msgs_in_timestep;
+    swarmlist_t swarmlist; ///< The swarmlist.
+    uint64_t num_msgs_tx;  ///< Number of messages sent since the beginning of the experiment.
+    uint64_t num_msgs_rx;  ///< Number of messages received since the beginning of the experiment.
+    char csv_path[];       ///< Path to csv file.
 } exp_data_t;
 
 #ifdef __cplusplus
