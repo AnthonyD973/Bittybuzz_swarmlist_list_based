@@ -1,5 +1,5 @@
 /**
- * @file swarmlist_list_based_32bit_robot_IDs.c
+ * @file swarmlist_list_based.c
  * @brief Test of a "List-based" swarm-list strategy.
  * The difference with swarmlist_list_based.c is that robot IDs
  * are 32-bit values instead of 8-bit. We need more than 256 robots
@@ -10,7 +10,7 @@
 #include <message_crc.h>
 #include <stdio.h>
 
-#include "swarmlist_list_based_32bit_robot_IDs.h"
+#include "swarmlist_list_based.h"
 
 // ===============================
 // =  GENERAL GLOBAL VARIABLES   =
@@ -63,9 +63,9 @@ void msg_tx_success() {
  * Number of swarmlist entries in a swarm message.
  */
 #define SWARM_ENTRY_SZ (                                                \
-        sizeof(swarmlist->data[0].robot) +                              \
-        sizeof(swarmlist->data[0].swarm_mask) +                         \
-        sizeof(swarmlist->data[0].lamport)                              \
+        sizeof(robot_id_t) +                                            \
+        sizeof(uint8_t) +                                               \
+        sizeof(lamport8_t)                                              \
     )
 
 /**
@@ -83,13 +83,13 @@ void msg_tx_success() {
  * Offset, inside a message, of the swarm mask of the first
  * entry of the message.
  */
-#define SWARM_MASK_POS (ROBOT_ID_POS + sizeof(swarmlist->data[0].robot))
+#define SWARM_MASK_POS (ROBOT_ID_POS + sizeof(robot_id_t))
 
 /**
  * Offset, inside a message, of the Lamport clock of the first
  * entry of the message.
  */
-#define LAMPORT_POS (SWARM_MASK_POS + sizeof(swarmlist->data[0].swarm_mask))
+#define LAMPORT_POS (SWARM_MASK_POS + sizeof(uint8_t))
 
 void send_next_swarm_chunk() {
     if (swarmlist->size != 0) {
@@ -104,26 +104,26 @@ void send_next_swarm_chunk() {
             for (uint8_t j = 0; j < NUM_ENTRIES_PER_SWARM_MSG; ++j) {
                 // Increment our own Lamport clock so that others are aware
                 // that we still exist.
-                swarmlist_entry_t* entry = &swarmlist->data[swarmlist->next_to_send];
+                swarmlist_entry_t entry = swarmlist_get_next();
 
                 // Don't send the info of inactive robots.
                 // A robot always has at least its own entry active,
                 // so we don't risk falling in infinite loops.
-                while (!swarmlist_entry_isactive(entry)) {
+                while (!swarmlist_entry_isactive(&entry)) {
                     swarmlist_next();
-                    entry = &swarmlist->data[swarmlist->next_to_send];
+                    entry = swarmlist_get_next();
                 }
 
                 // Increment Lamport clock when sending our own info.
-                if (entry->robot == kilo_uid) {
+                if (entry.robot == kilo_uid) {
                     ++local_lamport;
-                    entry->lamport = local_lamport;
+                    entry.lamport = local_lamport;
                 }
 
                 // Append the next entry's data
-                *(robot_id_t*)&msg_tx.data[SWARM_ENTRY_SZ*j+ROBOT_ID_POS] = entry->robot;
-                msg_tx.data[SWARM_ENTRY_SZ*j+SWARM_MASK_POS] = entry->swarm_mask;
-                msg_tx.data[SWARM_ENTRY_SZ*j+LAMPORT_POS]    = entry->lamport;
+                *(robot_id_t*)&msg_tx.data[SWARM_ENTRY_SZ*j+ROBOT_ID_POS] = entry.robot;
+                msg_tx.data[SWARM_ENTRY_SZ*j+SWARM_MASK_POS] = entry.swarm_mask;
+                msg_tx.data[SWARM_ENTRY_SZ*j+LAMPORT_POS]    = entry.lamport;
 
                 // Go to next robot (if we only have one or two robots, we'll
                 // send the same robot info several times, but that's OK).
@@ -171,99 +171,6 @@ void process_msg_rx_swarm(message_t* msg_rx) {
 // ===============================
 // =       OTHER FUNCTIONS       =
 // ===============================
-
-void swarmlist_construct() {
-    swarmlist->size = 0;
-    swarmlist->num_active = 0;
-    swarmlist->next_to_send = 0;
-}
-
-void swarmlist_update(robot_id_t robot,
-                      uint8_t swarm_mask,
-                      lamport8_t lamport) {
-    uint8_t sz = swarmlist->size;
-    ++swarmlist->size;
-    ++swarmlist->num_active;
-
-    // Does the entry already exist?
-    uint8_t pos;
-    uint8_t should_update = 1;
-    for (pos = 0; pos < sz; ++pos) {
-        if (swarmlist->data[pos].robot == robot) {
-            // Yes ; it is not a new entry after all.
-            --swarmlist->size;
-
-            lamport8_t old_lamport = swarmlist->data[pos].lamport;
-            if (swarmlist_entry_isactive(&swarmlist->data[pos])) {
-                should_update = lamport_isnewer(lamport, old_lamport);
-                --swarmlist->num_active;
-            }
-            else {
-                should_update = (lamport != old_lamport);
-                if (!should_update) {
-                    --swarmlist->num_active;
-                }
-            }
-
-            break;
-        }
-    }
-
-    if (should_update) {
-        swarmlist_entry_t* entry = &swarmlist->data[pos];
-        entry->robot      = robot;
-        entry->swarm_mask = swarm_mask;
-        entry->lamport    = lamport;
-        entry->time_to_inactive = SWARMLIST_TICKS_TO_INACTIVE;
-    }
-}
-
-#ifdef SWARMLIST_REMOVE_OLD_ENTRIES
-
-void swarmlist_tick() {
-    for (uint8_t i = 0; i < swarmlist->size; ++i) {
-       // Deal with entries in inactive mode
-        if (swarmlist_entry_isactive(&swarmlist->data[i])) {
-            --swarmlist->data[i].time_to_inactive;
-
-            if (!swarmlist_entry_isactive(&swarmlist->data[i])) {
-                swarmlist->data[i].time_to_removal = SWARMLIST_TICKS_TO_REMOVAL;
-                --swarmlist->num_active;
-            }
-        }
-        else {
-            // Deal with old inactive entries
-            if (swarmlist->data[i].time_to_removal > 0) {
-                --swarmlist->data[i].time_to_removal;
-            }
-            else {
-                // Removal
-
-                cli(); // No interrups ; don't accept messages during removal.
-                swarmlist->data[i] = swarmlist->data[swarmlist->size-1];
-                --swarmlist->size;
-                sei();
-            }
-        }
-    }
-}
-
-#else // SWARMLIST_REMOVE_OLD_ENTRIES
-
-void swarmlist_tick() {
-    for (uint8_t i = 0; i < swarmlist->size; ++i) {
-       // Deal with entries in inactive mode
-        if (swarmlist_entry_isactive(&swarmlist->data[i])) {
-            --swarmlist->data[i].time_to_inactive;
-        }
-    }
-}
-
-#endif // SWARMLIST_REMOVE_OLD_ENTRIES
-
-uint8_t swarmlist_num_active() {
-    return swarmlist->num_active;
-}
 
 uint8_t lamport_isnewer(lamport8_t lamport, lamport8_t old_lamport) {
     // This function uses a circular Lamport model (0 == 255 + 1).

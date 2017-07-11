@@ -9,7 +9,7 @@
 
 #include <inttypes.h>
 
-#include "behaviors/swarmlist_list_based_32bit_robot_IDs.h"
+#include "behaviors/swarmlist_list_based.h"
 
 #ifdef __cplusplus
 extern "C" {

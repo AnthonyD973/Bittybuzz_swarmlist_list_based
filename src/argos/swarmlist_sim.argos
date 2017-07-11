@@ -67,10 +67,10 @@
             <camera>
                 <placement
                     idx="0"
-                    position="-0.136774,0.2,0.157987"
-                    look_at="0.570333,0.2,-0.54912"
+                    position="-0.401939,4.64,0.423152"
+                    look_at="0.305168,4.64,-0.283955"
                     up="0.707107,0,0.707107"
-                    lens_focal_length="20" />
+                    lens_focal_length="20"/>
             </camera>
         </qt-opengl>-->
     </visualization>

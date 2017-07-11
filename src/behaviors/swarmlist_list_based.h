@@ -1,5 +1,5 @@
 /**
- * @file swarmlist_list_based_32bit_robot_IDs.h
+ * @file swarmlist_list_based.h
  * @brief Test of a "List-based" swarm-list strategy.
  * The difference with swarmlist_list_based.c is that robot IDs
  * are 32-bit values instead of 8-bit. We need more than 256 robots
@@ -148,62 +148,8 @@ uint8_t swarmlist_entry_shouldremove(const swarmlist_entry_t* e) {
 
 
 // ===============================
-// =     SWARMLIST STRUCTURE     =
+// =       OTHER FUNCTIONS       =
 // ===============================
-
-/**
- * The data that we know about other robots.
- * @note We assume there is only one instance of this structure.
- */
-typedef struct PACKED {
-    swarmlist_entry_t data[ROBOT_SWARMLIST_CAP]; ///< The data of the swarm list.
-    uint32_t size; ///< Number of entries.
-    uint32_t num_active; ///< Number of active entries.
-    uint32_t next_to_send; ///< The index of the next entry to send via a swarm chunk.
-} swarmlist_t;
-
-/**
- * Swarmlist single instance.
- */
-extern swarmlist_t* swarmlist;
-
-/**
- * Constructs the swarmlist.
- */
-void swarmlist_construct();
-
-/**
- * Updates/creates an entry in the swarm list.
- */
-void swarmlist_update(robot_id_t robot,
-                      uint8_t swarm_mask,
-                      lamport8_t lamport);
-
-/**
- * Passes on to the next swarm entry.
- */
-ALWAYS_INLINE
-void swarmlist_next() {
-    ++swarmlist->next_to_send;
-    if (swarmlist->next_to_send >= swarmlist->size)
-        swarmlist->next_to_send = 0;
-}
-
-/**
- * Determines the size of the swarmlist.
- */
-ALWAYS_INLINE
-uint8_t swarmlist_size() { return swarmlist->size; }
-
-/**
- * Determines the number of active entries in the swarmlist.
- */
-uint8_t swarmlist_num_active();
-
-/**
- * Removes 1 from all timers. If a timer is at 0, remove the entry.
- */
-void swarmlist_tick();
 
 /**
  * Broadcasts a swarm data chunk.
@@ -212,11 +158,6 @@ void swarmlist_tick();
  * @see SWARM_CHUNK_AMOUNT
  */
 void send_next_swarm_chunk();
-
-
-// ===============================
-// =       OTHER FUNCTIONS       =
-// ===============================
 
 /**
  * Processes a swarm message.
@@ -235,6 +176,7 @@ uint8_t lamport_isnewer(lamport8_t lamport, lamport8_t old_lamport);
  */
 #define LED(r,g,b) set_color(RGB(r,g,b))
 
+#include "swarmlist.h" // Include at the end to fix circular dependencies.
 
 #ifdef __cplusplus
 }

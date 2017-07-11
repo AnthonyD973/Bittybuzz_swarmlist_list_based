@@ -102,7 +102,7 @@ void swlexp::ExpLoopFunc::PostStep() {
 bool swlexp::ExpLoopFunc::IsExperimentFinished() {
     const argos::UInt32 NUM_KILOBOTS = m_kilobotProcesses.size();
     for (auto it = m_kilobotProcesses.begin(); it < m_kilobotProcesses.end(); ++it) {
-        if (it->getExpData()->swarmlist.num_active < NUM_KILOBOTS) {
+        if (it->getExpData()->swarmlist.num_active != NUM_KILOBOTS) {
             return false;
         }
     }

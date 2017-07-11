@@ -1,6 +1,8 @@
 add_argos_kilobot_executable(swarmlist_list_based
-    swarmlist_list_based_32bit_robot_IDs.c
-    swarmlist_list_based_32bit_robot_IDs.h
-    include.h
+    swarmlist_list_based.c
+    swarmlist_list_based.h
     include.c
+    include.h
+    swarmlist.cpp
+    swarmlist.h
 )
