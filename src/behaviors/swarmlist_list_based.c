@@ -257,7 +257,7 @@ void loop() {
 
     ++n_loops;
     if (kilo_uid == 0 && n_loops % 1000 == 0) {
-        printf("Robot #%d\t; Timesteps: %d\t; swarmlist size: %d\n", kilo_uid, n_loops, swarmlist->size);
+        printf("Robot #%d\t; Timesteps: %d\t; swarmlist size: %d\n", kilo_uid, n_loops, swarmlist->size);fflush(stdout);
     }
 
 }

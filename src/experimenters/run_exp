@@ -22,7 +22,7 @@ NUM_TRIES=2
 
 for TOPOLOGY in line # TODO Add more topologies
 do
-    for NUM_ROBOTS in {10..20..10}
+    for NUM_ROBOTS in {10..50..10}
     do
         for MSG_DROP_PROB in 0.00 0.25 0.50 0.75
         do

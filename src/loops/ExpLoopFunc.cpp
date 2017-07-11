@@ -69,7 +69,7 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
 void swlexp::ExpLoopFunc::Destroy() {
     m_expLog.flush();
 
-    // Resources are closed when they get out of scope.
+    // Other resources are closed when they get out of scope.
 }
 
 /****************************************/
@@ -100,14 +100,31 @@ void swlexp::ExpLoopFunc::PostStep() {
 /****************************************/
 
 bool swlexp::ExpLoopFunc::IsExperimentFinished() {
-    const argos::UInt32 NUM_KILOBOTS = m_kilobotProcesses.size();
-    for (auto it = m_kilobotProcesses.begin(); it < m_kilobotProcesses.end(); ++it) {
-        if (it->getExpData()->swarmlist.num_active != NUM_KILOBOTS) {
-            return false;
+    static const argos::UInt32 CALLS_TO_CHECK = 10;
+    static argos::UInt32 callsTillCheck = 0;
+
+    bool isFinished;
+    if (callsTillCheck == 0) {
+        callsTillCheck = CALLS_TO_CHECK;
+
+        isFinished = true;
+        const argos::UInt32 NUM_KILOBOTS = m_kilobotProcesses.size();
+        for (auto it = m_kilobotProcesses.begin(); it < m_kilobotProcesses.end(); ++it) {
+            if (it->getExpData()->swarmlist.num_active != NUM_KILOBOTS) {
+                isFinished = false;
+                break;
+            }
+        }
+        if (isFinished) {
+            _finishExperiment();
         }
     }
-    _finishExperiment();
-    return true;
+    else {
+        isFinished = false;
+    }
+
+    --callsTillCheck;
+    return isFinished;
 }
 
 /****************************************/
