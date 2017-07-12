@@ -200,7 +200,7 @@ void setup() {
     swarmlist_update(kilo_uid, local_swarm_mask, local_lamport);
 }
 
-uint32_t n_loops = 0;
+uint64_t n_loops = 0;
 uint16_t loops_till_tick = 1;
 uint16_t loops_till_next_chunk = 1;
 void loop() {
@@ -261,7 +261,7 @@ void loop() {
         printf("Robot #%d\t; Timesteps: %d\t; swarmlist size: %d\n", kilo_uid, n_loops, swarmlist->size);
         fflush(stdout);
     }
-    if (n_loops % 100 == 0) {
+    if (n_loops % STEPS_TO_LOG == 0) {
         log_status();
     }
 

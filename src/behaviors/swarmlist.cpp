@@ -80,8 +80,8 @@ void swarmlist_update(robot_id_t robot,
     // Does the entry already exist?
     uint8_t should_update;
     const swarmlist_entry_t* E = 0;
-    uint8_t is_new = swarmlist_get(robot, &E);
-    if (is_new) {
+    uint8_t existed = swarmlist_get(robot, &E);
+    if (existed) {
         // Yes.
         lamport8_t old_lamport = E->lamport;
 

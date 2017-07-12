@@ -71,13 +71,15 @@ void open_resources() {
     kilolib_sigterm_handler = signal(SIGTERM, exp_sigterm_handler);
 
     fprintf(kilobot_csv,
-            "ID;"
+            "ID,"
+            "Time (timesteps),"
             "Number of messages sent,"
+            "Avg. sent bandwidth (B/timestep),"
             "Number of messages received,"
+            "Avg. received bandwidth (B/timestep),"
             "Swarmlist size,"
-            "Swarmlist num active,"
-            "Swarmlist next to send,"
-            "\"Swarmlist data (robot ID;lamport;time to inactive)\"\n");
+            "Swarmlist number of active entries,"
+            "\"Swarmlist data (robot ID;lamport;ticks to inactive)\"\n");
     fflush(kilobot_csv);
 }
 
@@ -91,9 +93,20 @@ void log_elem_fun(const swarmlist_entry_t* entry, void* params) {
 }
 
 void log_status() {
+    static uint64_t former_num_msgs_tx = 0;
+    static uint64_t former_num_msgs_rx = 0;
+
+    uint64_t num_msgs_tx_since_log = *num_msgs_tx - former_num_msgs_tx;
+    uint64_t num_msgs_rx_since_log = *num_msgs_rx - former_num_msgs_rx;
+    former_num_msgs_tx = *num_msgs_tx;
+    former_num_msgs_rx = *num_msgs_rx;
+
+    double bw_tx = (double)(num_msgs_tx_since_log) / STEPS_TO_LOG;
+    double bw_rx = (double)(num_msgs_rx_since_log) / STEPS_TO_LOG;
+
     fprintf(kilobot_csv,
-        "%d,%"PRIu64",%"PRIu64",%d,%d,%d,\"",
-        kilo_uid, *num_msgs_tx, *num_msgs_rx, swarmlist->size, swarmlist->num_active, swarmlist->next_to_send);
+        "%d,%"PRIu64",%"PRIu64",%f,%"PRIu64",%f,%d,%d,\"",
+        kilo_uid, n_loops, num_msgs_tx_since_log, bw_tx, num_msgs_rx_since_log, bw_rx, swarmlist->size, swarmlist->num_active);
 
     swarmlist_foreach(log_elem_fun, 0);
 

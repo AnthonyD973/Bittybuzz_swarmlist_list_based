@@ -83,6 +83,11 @@ extern "C" {
 // ==============================
 
 /**
+ * Number of timesteps since the beginning of the experiment
+ */
+extern uint64_t n_loops;
+
+/**
  * Number of messages sent since the beginning of the experiment.
  */
 extern uint64_t* num_msgs_tx;

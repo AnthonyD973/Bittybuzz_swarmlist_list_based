@@ -19,6 +19,8 @@ extern "C" {
 void open_resources();
 void log_status();
 
+#define STEPS_TO_LOG 100
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus
