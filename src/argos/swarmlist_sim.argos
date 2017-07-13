@@ -4,7 +4,10 @@
 
     <framework>
         <system threads="0"/>
-        <experiment length="0" ticks_per_second="40" random_seed="0"/>
+        <experiment
+            length="0"
+            ticks_per_second="40"
+            random_seed="RANDOM_SEED"/>
     </framework>
 
     <controllers>

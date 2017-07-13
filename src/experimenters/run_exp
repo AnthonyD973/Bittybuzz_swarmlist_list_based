@@ -22,29 +22,22 @@ KILOBOT_META_STUFF_DELAY=100
 CHECK_IF_FINISHED_DELAY=10
 NUM_EXPERIMENTS=2
 
-for TOPOLOGY in line # TODO Add more topologies
+for topology in line # TODO Add more topologies
 do
-    for NUM_ROBOTS in {10..20..10}
+    for num_robots in {10..20..10}
     do
-        for MSG_DROP_PROB in 0.00 0.25 0.50 0.75
+        for msg_drop_prob in 0.00 0.25 0.50 0.75
         do
-            EXP_DIR="$WD/exp_${TOPOLOGY}Topology_${NUM_ROBOTS}Robots_${MSG_DROP_PROB}MsgDropProb"
-            mkdir -p "$EXP_DIR"
-            RES_FILE="$EXP_DIR/res.csv"
-            LOG_FILE="$EXP_DIR/log.txt"
-            KILOBOT_CSV_DIR="$EXP_DIR"
-            ARGOS_OUT="$EXP_DIR/config.argos"
+            experiment_basedir="$WD/exp_${topology}Topology_${num_robots}Robots_${msg_drop_prob}MsgDropProb"
+            mkdir -p "$experiment_basedir"
 
             # Run experiment
             ("$GIT_ROOT/src/experimenters/runners/job_runner" \
             "$ARGOS_IN" \
-            "$ARGOS_OUT" \
             "$BEHAVIOR_EXECUTABLE" \
-            "$RES_FILE" \
-            "$LOG_FILE" \
-            "$KILOBOT_CSV_DIR" \
+            "$experiment_basedir" \
             $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
-            $TOPOLOGY $NUM_ROBOTS $MSG_DROP_PROB)
+            $topology $num_robots $msg_drop_prob)
         done
     done
 done
