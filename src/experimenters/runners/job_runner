@@ -6,23 +6,27 @@ ARGOS_OUT="${2}"
 BEHAVIOR_EXECUTABLE="${3}"
 RES_FILE="${4}"
 LOG_FILE="${5}"
-KILOBOT_CSV_BASEDIR="${6}"
-NUM_TRIES=${7}
-TOPOLOGY=${8}
-NUM_ROBOTS=${9}
-MSG_DROP_PROB=${10}
+KILOBOT_CSV_DIR="${6}"
+KILOBOT_META_STUFF_DELAY=${7}
+CHECK_IF_FINISHED_DELAY=${8}
+NUM_EXPERIMENTS=${9}
+TOPOLOGY=${10}
+NUM_ROBOTS=${11}
+MSG_DROP_PROB=${12}
 
 # Run jobs (in background)
 i=1
-while [ $i -le $NUM_TRIES ]; do
-    KILOBOT_CSV_DIR="${KILOBOT_CSV_BASEDIR}-exp${i}"
+while [ $i -le $NUM_EXPERIMENTS ]; do
+    KILOBOT_CSV_FILE="${KILOBOT_CSV_DIR}/exp${i}_kb.csv"
     mkdir -p "$KILOBOT_CSV_DIR"
 
     # Generate argos file with the appropriate params
     sed -e "s|BEHAVIOR_EXECUTABLE|$BEHAVIOR_EXECUTABLE|g" \
         -e "s|RES_FILE|$RES_FILE|g" \
         -e "s|LOG_FILE|$LOG_FILE|g" \
-        -e "s|KILOBOT_CSV_DIR|$KILOBOT_CSV_DIR|g" \
+        -e "s|KILOBOT_CSV_FILE|$KILOBOT_CSV_FILE|g" \
+        -e "s|KILOBOT_META_STUFF_DELAY|$KILOBOT_META_STUFF_DELAY|g" \
+        -e "s|CHECK_IF_FINISHED_DELAY|$CHECK_IF_FINISHED_DELAY|g" \
         -e "s|TOPOLOGY|$TOPOLOGY|g" \
         -e "s|NUM_ROBOTS|$NUM_ROBOTS|g" \
         -e "s|MSG_DROP_PROB|$MSG_DROP_PROB|g" \

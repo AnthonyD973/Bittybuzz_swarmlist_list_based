@@ -8,8 +8,9 @@
 #include <signal.h>   // SIGKILL, sigaction, struct sigaction, __sighandler_t
 #include <stdint.h>   // PRIu64, ...
 #include <stdlib.h>   // exit
+#include <stdarg.h>   // va_list, va_start
 
-#include "include/exp_data.h" // exp_data_t
+#include "shared_mem/exp_data.h" // exp_data_t
 #include "include.h"
 
 static char* exp_data_name;
@@ -17,9 +18,61 @@ int exp_data_fd;
 exp_data_t* exp_data;
 void (*kilolib_sigterm_handler)(int) = 0;
 
-FILE* kilobot_csv;
 uint64_t* num_msgs_tx;
 uint64_t* num_msgs_rx;
+
+/**
+ * Number of characters (apart from the null byte) that can currently
+ * be written to the log.
+ */
+uint32_t log_data_len;
+
+/**
+ * Appends data to the experiment data log.
+ * @details This function appends the data after the first encountered null
+ * string.
+ * @param[in] format A printf-style format for the log.
+ * @param[in] ... Arguments to the format.
+ */
+void log_printf(const char* format, ...) {
+    // Find where to write.
+    char* last_alloc_char = exp_data->log_data + log_data_len;
+    char* where_to_append = exp_data->log_data;
+    while (where_to_append <= last_alloc_char && *where_to_append != '\0') {
+        ++where_to_append;
+    }
+    // Did we move past the log data buffer without finding a null byte?
+    if (where_to_append > last_alloc_char) {
+        // Yes. The log just contains junk data.
+        where_to_append = exp_data->log_data;
+    }
+
+    // Find the number of character that the log should have.
+    va_list args, args_cpy;
+    va_start(args, format);
+    va_copy(args_cpy, args);
+    size_t chars_needed = vsnprintf(NULL, 0, format, args);
+    va_end(args);
+
+    // Resize log if necessary.
+    uint32_t log_data_len_needed = (uint32_t)(where_to_append - exp_data->log_data)
+                                   / sizeof(char) + chars_needed;
+    uint8_t must_resize = (log_data_len_needed >  log_data_len ||
+                           log_data_len_needed <= log_data_len - 100);
+    if (must_resize) {
+        log_data_len = log_data_len_needed;
+        int trunc_ret = ftruncate(exp_data_fd, sizeof(exp_data_t) + log_data_len + 1);
+        if (trunc_ret < 0) {
+            fprintf(stderr, "ERROR for kilobot #%d: %s", kilo_uid, strerror(errno));
+            fflush(stderr);
+        }
+    }
+
+    // Write to log.
+    vsprintf(where_to_append, format, args_cpy);
+
+    va_end(args_cpy);
+}
 
 /**
  * Closes all the open files and memory maps.
@@ -50,46 +103,25 @@ void open_resources() {
     num_msgs_tx = &exp_data->num_msgs_tx;
     num_msgs_rx = &exp_data->num_msgs_rx;
 
-    // Open csv file, whose path was already written by ARGoS.
-    kilobot_csv = fopen(exp_data->csv_path, "w");
-    if (!kilobot_csv) {
-        fprintf(stderr, "ERROR for kilobot #%d: Failed to open file \"%s\": %s\n", kilo_uid, exp_data->csv_path, strerror(errno));
-        exit(-1);
-    }
-
-    // Remove the CSV file path from the shared memory ; we don't need it anymore.
-    // Also resets everything to zero.
-    int trunc_ret = ftruncate(exp_data_fd, sizeof(exp_data_t));
+    int trunc_ret = ftruncate(exp_data_fd, sizeof(exp_data_t) + 1);
+    log_data_len = 0;
 
     if (trunc_ret < 0) {
         fprintf(stderr, "ERROR for kilobot #%d: %s", kilo_uid, strerror(errno));
-        swarmlist = 0;
-        num_msgs_tx = 0;
+        fflush(stderr);
+        exit(-1);
     }
 
     // Set our own SIGTERM handler and get the old one.
     kilolib_sigterm_handler = signal(SIGTERM, exp_sigterm_handler);
-
-    fprintf(kilobot_csv,
-            "ID,"
-            "Time (timesteps),"
-            "Number of messages sent,"
-            "Avg. sent bandwidth (B/timestep),"
-            "Number of messages received,"
-            "Avg. received bandwidth (B/timestep),"
-            "Swarmlist size,"
-            "Swarmlist number of active entries,"
-            "\"Swarmlist data (robot ID;lamport;ticks to inactive)\"\n");
-    fflush(kilobot_csv);
 }
 
 
 void log_elem_fun(const swarmlist_entry_t* entry, void* params) {
-    fprintf(kilobot_csv,
-        "(%d,%d,%d);",
-        entry->robot,
-        entry->lamport,
-        entry->time_to_inactive);
+    log_printf("(%d,%d,%d);",
+               entry->robot,
+               entry->lamport,
+               entry->time_to_inactive);
 }
 
 void log_status() {
@@ -104,12 +136,17 @@ void log_status() {
     double bw_tx = (double)(num_msgs_tx_since_log) / STEPS_TO_LOG;
     double bw_rx = (double)(num_msgs_rx_since_log) / STEPS_TO_LOG;
 
-    fprintf(kilobot_csv,
-        "%d,%"PRIu64",%"PRIu64",%f,%"PRIu64",%f,%d,%d,\"",
-        kilo_uid, n_loops, num_msgs_tx_since_log, bw_tx, num_msgs_rx_since_log, bw_rx, swarmlist->size, swarmlist->num_active);
+    log_printf("%d,%"PRIu64",%"PRIu64",%f,%"PRIu64",%f,%d,%d,\"",
+        kilo_uid, exp_data->time, num_msgs_tx_since_log, bw_tx, num_msgs_rx_since_log, bw_rx, swarmlist->size, swarmlist->num_active);
 
     swarmlist_foreach(log_elem_fun, 0);
 
-    fprintf(kilobot_csv, "\"\n");
-    fflush(kilobot_csv);
+    log_printf("\"");
+}
+
+void do_meta_stuff() {
+    set_meta_info(exp_data, EXP_DATA_META_INFO_IS_ALIVE);
+    if (get_and_clear_meta_info(exp_data, EXP_DATA_META_INFO_SHOULD_LOG_STATUS)) {
+        log_status();
+    }
 }

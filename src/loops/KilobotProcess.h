@@ -11,7 +11,7 @@
 #include <argos3/plugins/robots/kilobot/simulator/kilobot_entity.h>
 #include <unordered_set>
 
-#include "include/exp_data.h"
+#include "shared_mem/exp_data.h"
 
 namespace swlexp {
 
@@ -35,14 +35,12 @@ namespace swlexp {
          * one of those in the ARGoS file.
          * @param[in] position Initial position of the kilobot.
          * @param[in] orientation Initial orientation of the kilobot.
-         * @param[in] kilobotCsv Csv file that this kilobot can write to.
          */
         KilobotProcess(argos::CLoopFunctions& loopFunc,
                        argos::UInt32 id,
                        const std::string& controllerId,
                        const argos::CVector3& position,
-                       const argos::CQuaternion& orientation,
-                       const std::string& kilobotCsv);
+                       const argos::CQuaternion& orientation);
 
         KilobotProcess(KilobotProcess&& other);
         KilobotProcess& operator=(KilobotProcess&& other);
@@ -65,6 +63,11 @@ namespace swlexp {
 
         inline
         const exp_data_t* getExpData() const { return m_expData; }
+
+        /**
+         * Gets the data logged by the kilobot's process, and empties it.
+         */
+        std::string getLogData() const;
 
 
         /**

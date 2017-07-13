@@ -28,7 +28,9 @@
         label="exp_loop_func"
         res="RES_FILE"
         log="LOG_FILE"
-        kb_csv_dir="KILOBOT_CSV_DIR"
+        kb_csv="KILOBOT_CSV_FILE"
+        kb_meta_stuff_delay="KILOBOT_META_STUFF_DELAY"
+        check_if_finished_delay="CHECK_IF_FINISHED_DELAY"
         num_robots="NUM_ROBOTS"
         topology="TOPOLOGY"/>
 

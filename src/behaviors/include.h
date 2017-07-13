@@ -17,7 +17,8 @@ extern "C" {
 #define sei()
 
 void open_resources();
-void log_status();
+void do_meta_stuff();
+
 
 #define STEPS_TO_LOG 100
 

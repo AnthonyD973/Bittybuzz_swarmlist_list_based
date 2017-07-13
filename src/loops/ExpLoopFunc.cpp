@@ -24,7 +24,9 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     // Get arguments from configuration file.
     argos::GetNodeAttribute(t_tree, "res", m_expResName);
     argos::GetNodeAttribute(t_tree, "log", m_expLogName);
-    argos::GetNodeAttribute(t_tree, "kb_csv_dir", m_kbCsvDir);
+    argos::GetNodeAttribute(t_tree, "kb_csv", m_expKbCsvName);
+    argos::GetNodeAttribute(t_tree, "kb_meta_stuff_delay", m_expMetaStuffDelay);
+    argos::GetNodeAttribute(t_tree, "check_if_finished_delay", m_expCheckIfFinishedDelay);
     argos::UInt32 numRobots;
     argos::GetNodeAttribute(t_tree, "num_robots", numRobots);
     std::string topology;
@@ -41,7 +43,11 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     argos::TConfigurationNode kilocomm = argos::GetNode(media, "kilobot_communication");
     argos::GetNodeAttributeOrDefault(kilocomm, "message_drop_prob", m_msgDropProb, 0.0);
 
-    // Open result and log files.
+    // Open files.
+    m_expKbCsv.open(m_expKbCsvName, std::ios::app);
+    if (m_expKbCsv.fail()) {
+        THROW_ARGOSEXCEPTION("Could not open CSV file \"" << m_expKbCsvName << "\".");
+    }
     m_expRes.open(m_expResName, std::ios::app);
     if (m_expRes.fail()) {
         THROW_ARGOSEXCEPTION("Could not open CSV file \"" << m_expResName << "\".");
@@ -57,10 +63,26 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
                 numRobots     << CSV_DELIM <<
                 m_msgDropProb;
 
+    m_expKbCsv << "ID,"
+                  "Time (timesteps),"
+                  "Number of messages sent,"
+                  "Avg. sent bandwidth (B/timestep),"
+                  "Number of messages received,"
+                  "Avg. received bandwidth (B/timestep),"
+                  "Swarmlist size,"
+                  "Swarmlist number of active entries,"
+                  "\"Swarmlist data (robot ID,lamport,ticks to inactive)\"\n";
+
     m_expLog << "---EXPERIMENT START---\n"
                 "Topology: " << topology << "\n" <<
                 "Number of robots: " << numRobots << "\n"
-                "Drop probability: " << m_msgDropProb << "\n";
+                "Drop probability: " << (m_msgDropProb * 100) << "%\n";
+
+    argos::LOG << "--------------------------------------\n"
+                  "TOPOLOGY: " << topology << "\n" <<
+                  "NUMBER OF ROBOTS: " << numRobots << "\n"
+                  "PACKET DROP PROBABILITY: " << (m_msgDropProb * 100) << "%\n"
+                  "--------------------------------------\n";
     m_expLog.flush();
 }
 
@@ -68,7 +90,9 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
 /****************************************/
 
 void swlexp::ExpLoopFunc::Destroy() {
+    m_expRes.flush();
     m_expLog.flush();
+    m_expKbCsv.flush();
 
     // Other resources are closed when they get out of scope.
 }
@@ -87,19 +111,48 @@ void swlexp::ExpLoopFunc::Reset() {
 /****************************************/
 
 void swlexp::ExpLoopFunc::PostStep() {
+    static argos::UInt32 callsTillMetaStuff = 0;
 
+    if (callsTillMetaStuff == 1) {
+        const argos::UInt32 TIME = GetSpace().GetSimulationClock();
+        argos::UInt32 id = 0;
+        for (auto it = m_kilobotProcesses.begin(); it < m_kilobotProcesses.end(); ++it) {
+            exp_data_t* expData = it->getExpData();
+            expData->time = TIME;
+            set_meta_info(expData, EXP_DATA_META_INFO_SHOULD_LOG_STATUS);
+            if (!get_and_clear_meta_info(expData, EXP_DATA_META_INFO_IS_ALIVE)) {
+                m_expLog      << "Kilobot #" << id << "'s process has died unexpectedly.\n";
+                m_expLog.flush();
+                _finishExperiment();
+                THROW_ARGOSEXCEPTION("Kilobot #" << id << "'s process has died unexpectedly.");
+                return;
+            }
+            ++id;
+        }
+    }
+    else if (callsTillMetaStuff == 0) {
+        callsTillMetaStuff = m_expMetaStuffDelay;
+        for (auto it = m_kilobotProcesses.begin(); it < m_kilobotProcesses.end(); ++it) {
+            std::string logData = it->getLogData();
+            if (logData != "") {
+                m_expKbCsv << logData << '\n';
+                m_expKbCsv.flush();
+            }
+        }
+    }
+
+    --callsTillMetaStuff;
 }
 
 /****************************************/
 /****************************************/
 
 bool swlexp::ExpLoopFunc::IsExperimentFinished() {
-    static const argos::UInt32 CALLS_TO_CHECK = 10;
     static argos::UInt32 callsTillCheck = 0;
 
     bool isFinished;
     if (callsTillCheck == 0) {
-        callsTillCheck = CALLS_TO_CHECK;
+        callsTillCheck = m_expCheckIfFinishedDelay;
 
         isFinished = true;
         const argos::UInt32 NUM_KILOBOTS = m_kilobotProcesses.size();
@@ -130,9 +183,8 @@ void swlexp::ExpLoopFunc::_placeLine(argos::UInt32 numRobots) {
     for (argos::UInt32 i = 0; i < numRobots; ++i) {
         argos::CVector3 pos = argos::CVector3(0, maxY - i * 0.06, 0);
         argos::CQuaternion orient = argos::CQuaternion();
-        
-        std::string kilobotCsv = m_kbCsvDir + "/kb" + std::to_string(i) + ".csv";
-        swlexp::KilobotProcess&& kProc = KilobotProcess(*this, i, "kb_ctrl", pos, orient, kilobotCsv);
+
+        swlexp::KilobotProcess&& kProc = KilobotProcess(*this, i, "kb_ctrl", pos, orient);
         m_kilobotProcesses.push_back(std::move(kProc));
     }
 }
@@ -164,7 +216,8 @@ void swlexp::ExpLoopFunc::_finishExperiment() {
                 "\n";
     m_expLog.flush();
 
-    argos::LOG << "Experiment finished. See \"" << m_expLogName << "\" for results.\n";
+    argos::LOG << "Experiment finished in " << GetSpace().GetSimulationClock() <<
+                  " timesteps. See \"" << m_expLogName << "\" for results.\n";
 }
 
 /****************************************/

@@ -59,7 +59,7 @@ void swarmlist_set(const swarmlist_entry_t* entry) {
 /****************************************/
 /****************************************/
  
-uint8_t swarmlist_get(robot_id_t key, swarmlist_entry_t const ** value) {    
+uint8_t swarmlist_get(robot_id_t key, swarmlist_entry_t const ** value) {
     try {
         *value = &data_by_id.at(key).entry;
         return true;
@@ -107,7 +107,6 @@ void swarmlist_update(robot_id_t robot,
     }
 
     if (should_update) {
-        // printf("%s(%d): %s\n", __FILE__, __LINE__, __PRETTY_FUNCTION__);
         swarmlist_entry_t entry = {
             .robot            = robot,
             .swarm_mask       = swarm_mask,

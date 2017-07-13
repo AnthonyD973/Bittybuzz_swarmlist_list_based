@@ -79,9 +79,27 @@ namespace swlexp {
         std::ofstream m_expLog;
 
         /**
-         * Directory in which the kilobot csv files are.
+         * Path to the file that kilobots log CSV data to every few timesteps.
          */
-        std::string m_kbCsvDir;
+        std::string m_expKbCsvName;
+
+        /**
+         * File that kilobots log CSV data to every few timesteps.
+         */
+        std::ofstream m_expKbCsv;
+
+        /**
+         * @brief How often (in timesteps) wait until we do meta things, i.e.,
+         * 1) request the kilobots to log their status, and
+         * 2) check if the kilobot processes are still alive.
+         */
+        argos::UInt32 m_expMetaStuffDelay;
+
+        /**
+         * How often (in timesteps) we wait until we check if the experiment
+         * is finished.
+         */
+        argos::UInt32 m_expCheckIfFinishedDelay;
 
         /**
          * Experiment param. Specifies the probablility that a
@@ -92,7 +110,7 @@ namespace swlexp {
         /**
          * Delimiter of the CSV file.
          */
-        static const char CSV_DELIM=',';
+        static const char CSV_DELIM = ',';
 
     };
 

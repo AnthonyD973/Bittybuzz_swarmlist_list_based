@@ -20,27 +20,19 @@ swlexp::KilobotProcess::KilobotProcess(
     argos::UInt32 id,
     const std::string& controllerId,
     const argos::CVector3& position,
-    const argos::CQuaternion& orientation,
-    const std::string& kilobotCsv)
+    const argos::CQuaternion& orientation)
 
     : m_loopFunc(&loopFunc)
     , m_controllerId(controllerId)
 {
 
-    // Create and place kilobot. This also creates the process itself.
-    argos::CKilobotEntity* kb =
-        new argos::CKilobotEntity(
-            "kb" + std::to_string(id),
-            m_controllerId,
-            position,
-            orientation
-        );
-    m_loopFunc->AddEntity(*kb);
+    // Add this process to the list of processes.
+    c_processes.insert(this);
 
     // Create experiment data
     m_expDataName = "/exp_data" + std::to_string(id);
     m_expDataFd = ::shm_open(m_expDataName.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-    int truncRet = ::ftruncate(m_expDataFd, sizeof(exp_data_t) + kilobotCsv.size() + 1);
+    int truncRet = ::ftruncate(m_expDataFd, sizeof(exp_data_t) + 1);
     if (truncRet >= 0) {
         m_expData = reinterpret_cast<exp_data_t*>(
             ::mmap(NULL,
@@ -54,11 +46,15 @@ swlexp::KilobotProcess::KilobotProcess(
         THROW_ARGOSEXCEPTION("Error acquiring experiment data: " << ::strerror(errno));
     }
 
-    // Set path to kilobot csv.
-    strcpy(m_expData->csv_path, kilobotCsv.c_str());
-
-    // Add this process to the list of processes.
-    c_processes.insert(this);
+    // Create and place kilobot. This also creates the process itself.
+    argos::CKilobotEntity* kb =
+        new argos::CKilobotEntity(
+            "kb" + std::to_string(id),
+            m_controllerId,
+            position,
+            orientation
+        );
+    m_loopFunc->AddEntity(*kb);
 }
 
 /****************************************/
@@ -127,6 +123,19 @@ void swlexp::KilobotProcess::reset() {
     for (argos::UInt32 i = 0; i < sizeof(exp_data_t); ++i) {
         ((char*)m_expData)[i] = 0;
     }
+}
+
+/****************************************/
+/****************************************/
+
+std::string swlexp::KilobotProcess::getLogData() const {
+    std::string logData = m_expData->log_data;
+    int truncRet = ::ftruncate(m_expDataFd, sizeof(exp_data_t) + 1);
+    if (truncRet < 0) {
+        THROW_ARGOSEXCEPTION("Error emptying experiment data: " << ::strerror(errno));
+    }
+    m_expData->log_data[0] = '\0';
+    return logData;
 }
 
 /****************************************/
