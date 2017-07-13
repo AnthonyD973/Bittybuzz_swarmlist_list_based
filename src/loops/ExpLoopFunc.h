@@ -11,7 +11,22 @@
 
 namespace swlexp {
 
+
     class ExpLoopFunc : public argos::CLoopFunctions {
+
+    // ==============================
+    // =       NESTED SYMBOLS       =
+    // ==============================
+
+    private:
+
+        /**
+         * Enum that gives info about why we are exiting.
+         */
+        enum ExitCode : argos::SInt16 {
+            NORMAL          = 0x00, ///< Exited normally.
+            SUBPROC_DIED    = 0x10  ///< Kilobot subprocess died unexpectedly
+        };
 
     // ==============================
     // =          METHODS           =
@@ -40,8 +55,16 @@ namespace swlexp {
         /**
          * Finishes the experiment, in effect writing experiment data to the log
          * file.
+         * @param[in] exitCode Code for how to finish the experiment.
          */
-        void _finishExperiment();
+        void _finishExperiment(swlexp::ExpLoopFunc::ExitCode exitCode);
+
+        /**
+         * Determines the string that corresponds to an exit code.
+         * @param[in] exitCode The exit code.
+         * @return The string corresponding to the exit code.
+         */
+        static std::string _exitCodeToString(swlexp::ExpLoopFunc::ExitCode exitCode);
 
     // ==============================
     // =         ATTRIBUTES         =

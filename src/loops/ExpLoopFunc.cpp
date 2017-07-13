@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdio>
 
 #include "ExpLoopFunc.h"
 
@@ -121,9 +122,7 @@ void swlexp::ExpLoopFunc::PostStep() {
             expData->time = TIME;
             set_meta_info(expData, EXP_DATA_META_INFO_SHOULD_LOG_STATUS);
             if (!get_and_clear_meta_info(expData, EXP_DATA_META_INFO_IS_ALIVE)) {
-                m_expLog      << "Kilobot #" << id << "'s process has died unexpectedly.\n";
-                m_expLog.flush();
-                _finishExperiment();
+                _finishExperiment(swlexp::ExpLoopFunc::ExitCode::SUBPROC_DIED);
                 THROW_ARGOSEXCEPTION("Kilobot #" << id << "'s process has died unexpectedly.");
                 return;
             }
@@ -163,7 +162,7 @@ bool swlexp::ExpLoopFunc::IsExperimentFinished() {
             }
         }
         if (isFinished) {
-            _finishExperiment();
+            _finishExperiment(swlexp::ExpLoopFunc::ExitCode::NORMAL);
         }
     }
     else {
@@ -192,32 +191,56 @@ void swlexp::ExpLoopFunc::_placeLine(argos::UInt32 numRobots) {
 /****************************************/
 /****************************************/
 
-void swlexp::ExpLoopFunc::_finishExperiment() {
-    const argos::UInt32 NUM_KILOBOTS = m_kilobotProcesses.size();
-    const argos::UInt64 NUM_MSGS_TX  = KilobotProcess::getTotalNumMessagesTx();
-    const argos::UInt64 NUM_MSGS_RX  = KilobotProcess::getTotalNumMessagesRx();
-    double bw_tx    = ((double)NUM_MSGS_TX / GetSpace().GetSimulationClock() /
-                   NUM_KILOBOTS) * 13;
-    double bw_rx = ((double)NUM_MSGS_RX / GetSpace().GetSimulationClock() /
-                   NUM_KILOBOTS) * 13;
+void swlexp::ExpLoopFunc::_finishExperiment(swlexp::ExpLoopFunc::ExitCode exitCode) {
+    m_expLog << "---END---\n";
 
-    m_expRes << CSV_DELIM << GetSpace().GetSimulationClock() <<
-                CSV_DELIM << NUM_MSGS_TX <<
-                CSV_DELIM << NUM_MSGS_RX <<
-                CSV_DELIM << bw_tx <<
-                CSV_DELIM << bw_rx;
-    m_expRes.flush();
-    m_expLog << "---END---\n"
-                "Consensus (ts): " << GetSpace().GetSimulationClock() << "\n"
-                "Msgs sent (total): " << NUM_MSGS_TX << "\n"
-                "Msgs received (total): " << NUM_MSGS_RX << "\n"
-                "Avg. sent bandwidth (B/(ts*kb)): " << bw_tx << "\n"
-                "Avg. received bandwidth (B/(ts*kb)): " << bw_rx << "\n"
-                "\n";
-    m_expLog.flush();
+    if (exitCode == NORMAL) {
+        const argos::UInt32 NUM_KILOBOTS = m_kilobotProcesses.size();
+        const argos::UInt64 NUM_MSGS_TX  = KilobotProcess::getTotalNumMessagesTx();
+        const argos::UInt64 NUM_MSGS_RX  = KilobotProcess::getTotalNumMessagesRx();
+        double bw_tx    = ((double)NUM_MSGS_TX / GetSpace().GetSimulationClock() /
+                    NUM_KILOBOTS) * 13;
+        double bw_rx = ((double)NUM_MSGS_RX / GetSpace().GetSimulationClock() /
+                    NUM_KILOBOTS) * 13;
 
-    argos::LOG << "Experiment finished in " << GetSpace().GetSimulationClock() <<
-                  " timesteps. See \"" << m_expLogName << "\" for results.\n";
+        m_expRes << CSV_DELIM << GetSpace().GetSimulationClock() <<
+                    CSV_DELIM << NUM_MSGS_TX <<
+                    CSV_DELIM << NUM_MSGS_RX <<
+                    CSV_DELIM << bw_tx <<
+                    CSV_DELIM << bw_rx;
+        m_expRes.flush();
+        m_expLog << "Consensus (ts): " << GetSpace().GetSimulationClock() << "\n"
+                    "Msgs sent (total): " << NUM_MSGS_TX << "\n"
+                    "Msgs received (total): " << NUM_MSGS_RX << "\n"
+                    "Avg. sent bandwidth (B/(ts*kb)): " << bw_tx << "\n"
+                    "Avg. received bandwidth (B/(ts*kb)): " << bw_rx << "\n"
+                    "\n";
+        m_expLog.flush();
+
+        argos::LOG << "Experiment finished normally in " << GetSpace().GetSimulationClock() <<
+                    " timesteps. See \"" << m_expLogName << "\" for results.\n";
+    }
+    else {
+        remove(m_expKbCsvName.c_str());
+        remove(m_expResName.c_str());
+        m_expLog      << "[ERROR] " << _exitCodeToString(exitCode) << "\n";
+        m_expLog.flush();
+    }
+}
+
+/****************************************/
+/****************************************/
+
+std::string swlexp::ExpLoopFunc::_exitCodeToString(swlexp::ExpLoopFunc::ExitCode exitCode) {
+    if (exitCode == NORMAL) {
+        return "";
+    }
+    else if (exitCode == SUBPROC_DIED) {
+        return "Kilobot subprocess died unexpectedly.";
+    }
+    else {
+        THROW_ARGOSEXCEPTION("Unknown exit code: " << exitCode);
+    }
 }
 
 /****************************************/
