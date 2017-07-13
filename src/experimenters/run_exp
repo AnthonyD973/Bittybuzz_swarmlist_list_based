@@ -28,16 +28,22 @@ do
     do
         for msg_drop_prob in 0.00 0.25 0.50 0.75
         do
-            experiment_basedir="$WD/exp_${topology}Topology_${num_robots}Robots_${msg_drop_prob}MsgDropProb"
-            mkdir -p "$experiment_basedir"
+            i=1
+            while [ $i -le $NUM_EXPERIMENTS ]; do
+                experiment_basedir="$WD/exp_${topology}Topology_${num_robots}Robots_${msg_drop_prob}MsgDropProb"
+                mkdir -p "$experiment_basedir"
 
-            # Run experiment
-            ("$GIT_ROOT/src/experimenters/runners/job_runner" \
-            "$ARGOS_IN" \
-            "$BEHAVIOR_EXECUTABLE" \
-            "$experiment_basedir" \
-            $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
-            $topology $num_robots $msg_drop_prob)
+                # Run experiment
+                ("$GIT_ROOT/src/experimenters/runners/job_runner" \
+                "$ARGOS_IN" \
+                "$BEHAVIOR_EXECUTABLE" \
+                "$experiment_basedir" \
+                $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
+                $topology $num_robots $msg_drop_prob \
+                ${i})
+
+                i=$(($i+1))
+            done
         done
     done
 done

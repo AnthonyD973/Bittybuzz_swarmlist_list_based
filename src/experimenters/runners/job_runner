@@ -10,32 +10,27 @@ NUM_EXPERIMENTS=${6}
 TOPOLOGY=${7}
 NUM_ROBOTS=${8}
 MSG_DROP_PROB=${9}
+EXP_NUM=${10}
 
 # Run jobs (in background)
-i=1
-seed=1
-while [ $i -le $NUM_EXPERIMENTS ]; do
-    experiment_dir="$EXPERIMENT_BASEDIR/exp${i}"
-    mkdir -p "$experiment_dir"
-    argos_out="$experiment_dir/config.argos"
-    log_file="$experiment_dir/log.txt"
-    res_file="$experiment_dir/res.csv"
-    kilobot_csv_file="$experiment_dir/status_logs.csv"
+experiment_dir="$EXPERIMENT_BASEDIR/exp${EXP_NUM}"
+mkdir -p "$experiment_dir"
+argos_out="$experiment_dir/config.argos"
+log_file="$experiment_dir/log.txt"
+res_file="$experiment_dir/res.csv"
+kilobot_csv_file="$experiment_dir/status_logs.csv"
 
-    # Generate argos file with the appropriate params
-    sed -e "s|RANDOM_SEED|$seed|g" \
-        -e "s|BEHAVIOR_EXECUTABLE|$BEHAVIOR_EXECUTABLE|g" \
-        -e "s|LOG_FILE|$log_file|g" \
-        -e "s|RES_FILE|$res_file|g" \
-        -e "s|KILOBOT_CSV_FILE|$kilobot_csv_file|g" \
-        -e "s|KILOBOT_META_STUFF_DELAY|$KILOBOT_META_STUFF_DELAY|g" \
-        -e "s|CHECK_IF_FINISHED_DELAY|$CHECK_IF_FINISHED_DELAY|g" \
-        -e "s|TOPOLOGY|$TOPOLOGY|g" \
-        -e "s|NUM_ROBOTS|$NUM_ROBOTS|g" \
-        -e "s|MSG_DROP_PROB|$MSG_DROP_PROB|g" \
-        "$ARGOS_IN" > "$argos_out"
+# Generate argos file with the appropriate params
+sed -e "s|RANDOM_SEED|$EXP_NUM|g" \
+    -e "s|BEHAVIOR_EXECUTABLE|$BEHAVIOR_EXECUTABLE|g" \
+    -e "s|LOG_FILE|$log_file|g" \
+    -e "s|RES_FILE|$res_file|g" \
+    -e "s|KILOBOT_CSV_FILE|$kilobot_csv_file|g" \
+    -e "s|KILOBOT_META_STUFF_DELAY|$KILOBOT_META_STUFF_DELAY|g" \
+    -e "s|CHECK_IF_FINISHED_DELAY|$CHECK_IF_FINISHED_DELAY|g" \
+    -e "s|TOPOLOGY|$TOPOLOGY|g" \
+    -e "s|NUM_ROBOTS|$NUM_ROBOTS|g" \
+    -e "s|MSG_DROP_PROB|$MSG_DROP_PROB|g" \
+    "$ARGOS_IN" > "$argos_out"
 
-    argos3 -c "$argos_out"
-    i=$(($i+1))
-    seed=$(($seed+1))
-done
+argos3 -c "$argos_out"
