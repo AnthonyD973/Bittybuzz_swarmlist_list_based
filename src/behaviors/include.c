@@ -9,6 +9,7 @@
 #include <stdint.h>   // PRIu64, ...
 #include <stdlib.h>   // exit
 #include <stdarg.h>   // va_list, va_start
+#include <stdio.h>
 
 #include "shared_mem/exp_data.h" // exp_data_t
 #include "include.h"
