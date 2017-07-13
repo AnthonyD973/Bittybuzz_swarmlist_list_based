@@ -1,4 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#PBS -N ARGOS_Kilobot
+#PBS -j oe
+#PBS -l walltime=60:00:00
+
+#stop on errors
+set -e
 
 # Get experiment params
 ARGOS_IN="${1}"
