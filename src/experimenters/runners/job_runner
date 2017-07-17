@@ -12,6 +12,8 @@ NUM_ROBOTS=${8}
 MSG_DROP_PROB=${9}
 EXP_NUM=${10}
 
+ulimit -n $((${NUM_ROBOTS} * 2 + 1000))
+
 # Run jobs (in background)
 experiment_dir="$EXPERIMENT_BASEDIR/exp${EXP_NUM}"
 mkdir -p "$experiment_dir"

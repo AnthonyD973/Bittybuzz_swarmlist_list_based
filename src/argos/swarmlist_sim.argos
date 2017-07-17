@@ -37,7 +37,7 @@
         num_robots="NUM_ROBOTS"
         topology="TOPOLOGY"/>
 
-    <arena size="10,10,5" center="0,0,0.25">
+    <arena size="3000,3000,5" center="0,0,0.25">
         <light id="l0"
                position="0,0,0.95"
                orientation="0,0,0"

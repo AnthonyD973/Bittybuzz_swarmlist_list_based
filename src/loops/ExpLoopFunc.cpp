@@ -177,6 +177,24 @@ bool swlexp::ExpLoopFunc::IsExperimentFinished() {
 /****************************************/
 
 void swlexp::ExpLoopFunc::_placeLine(argos::UInt32 numRobots) {
+    // static const argos::Real X_SPACING = 0.00, Y_SPACING = 0.06;
+    // static const argos::Real X_BASEPOS = 0.00, Y_BASEPOS = 0.00, Z_BASEPOS = 0.00;
+
+    // // Resize arena.
+    // const argos::Real X_SIZE = 1.0 + X_BASEPOS + (numRobots) * X_SPACING;
+    // const argos::Real Y_SIZE = 1.0 + Y_BASEPOS + (numRobots) * Y_SPACING;
+    // const argos::Real Z_SIZE = 1.0;
+    // const argos::CVector3 ARENA_SIZE = argos::CVector3(X_SIZE, Y_SIZE, Z_SIZE);
+    // const argos::CVector3 ARENA_CENTER = argos::CVector3(
+    //     (X_BASEPOS + X_SIZE) / 2,
+    //     (Y_BASEPOS + Y_SIZE) / 2,
+    //     (Z_BASEPOS + Z_SIZE) / 2);
+    //     std::cout.flush();
+
+    // GetSpace().SetArenaSize(ARENA_SIZE);
+    // GetSpace().SetArenaCenter(ARENA_CENTER);
+
+    // Place the kilobots
     argos::CRange<argos::CVector3> arenaLimits = GetSpace().GetArenaLimits();
     argos::Real maxY = arenaLimits.GetMax().GetY() - 0.03;
     for (argos::UInt32 i = 0; i < numRobots; ++i) {
