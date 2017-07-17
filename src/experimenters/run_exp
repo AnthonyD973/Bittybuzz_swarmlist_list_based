@@ -13,7 +13,9 @@ WD="$BINARY_DIR/experiment"
 mkdir -p "$WD"
 cd "$WD"
 
-# Remove existing simulation results
+# Backup and remove existing simulation results
+rm -rf "$BINARY_DIR/experiment.old/"
+cp -r  "$WD" "$BINARY_DIR/experiment.old/"
 rm -rf ./*
 
 # Experiments
@@ -22,7 +24,7 @@ FINAL_RES_CSV="$WD/res.csv"
 BEHAVIOR_EXECUTABLE="$BINARY_DIR/behaviors/swarmlist_list_based"
 KILOBOT_META_STUFF_DELAY=10
 CHECK_IF_FINISHED_DELAY=10
-NUM_EXPERIMENTS=5
+NUM_EXPERIMENTS=1
 
 for topology in line # TODO Add more topologies
 do
@@ -32,31 +34,43 @@ do
         do
             i=1
             while [ $i -le $NUM_EXPERIMENTS ]; do
-                experiment_basedir="$WD/exp_${topology}Topology_${num_robots}Robots_${msg_drop_prob}MsgDropProb"
-                mkdir -p "$experiment_basedir"
+                subdir="$WD/exp_${topology}Topology_${num_robots}Robots_${msg_drop_prob}MsgDropProb"
 
                 # Run experiment
                 case $RUN_OR_SUBMIT in
-                "run")
-                    ("$GIT_ROOT/src/experimenters/runners/job_runner" \
-                     ${i} \
-                     "$ARGOS_IN" \
-                     "$BEHAVIOR_EXECUTABLE" \
-                     "$experiment_basedir" \
-                     $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
-                     $topology $num_robots $msg_drop_prob)
-                    ;;
-                "submit")
-                    qsub -F "$i $ARGOS_IN $BEHAVIOR_EXECUTABLE $experiment_basedir \
-                    $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
-                    $topology $num_robots $msg_drop_prob " \
-                    $GIT_ROOT/src/experimenters/runners/job_runner
-                    ;;
-                *)
-                    echo "Please specify either \"run\" or \"submit\" as target."
-                    exit 1
-                esac
 
+                    "run")
+                        experiment_basedir="$WD/$subdir"
+                        mkdir -p "$experiment_basedir"
+                        ("$GIT_ROOT/src/experimenters/runners/job_runner" \
+                        $i \
+                        "$ARGOS_IN" \
+                        "$BEHAVIOR_EXECUTABLE" \
+                        "$experiment_basedir" \
+                        "" \
+                        $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
+                        $topology $num_robots $msg_drop_prob)
+                        ;;
+
+                    "submit")
+                        experiment_basedir="$LSCRATCH/$subdir"
+                        mkdir -p "$experiment_basedir"
+                        qsub -F " \
+                        $i \
+                        \"$ARGOS_IN\" \
+                        \"$BEHAVIOR_EXECUTABLE\" \
+                        \"$experiment_basedir\" \
+                        \"$WD\" \
+                        $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
+                        $topology $num_robots $msg_drop_prob " \
+                        "$GIT_ROOT/src/experimenters/runners/job_runner"
+                        ;;
+
+                    *)
+                        echo "Please specify either \"run\" or \"submit\" as target."
+                        exit 1
+
+                esac
 
                 i=$(($i+1))
             done
