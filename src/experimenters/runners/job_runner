@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#PBS -N ARGOS_Kilobot
+#PBS -N ARGoS_Kilobot
 #PBS -j oe
 #PBS -l walltime=60:00:00
 
@@ -23,7 +23,7 @@ ulimit -n $((${NUM_ROBOTS} * 2 + 1000))
 
 # Run jobs (in background)
 experiment_dir="$EXPERIMENT_BASEDIR/exp${EXP_NUM}"
-mkdir -p "$experiment_dir"
+mkdir -p "$experiment_dir" 2> /dev/null
 argos_out="$experiment_dir/config.argos"
 log_file="$experiment_dir/log.txt"
 res_file="$experiment_dir/res.csv"

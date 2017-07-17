@@ -5,8 +5,8 @@ project(kilobot_list_based)
 #
 # Set flags
 #
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -Wall -O4 -std=c99")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O4 -std=c++11")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -Wall -O2 -march=native -flto -std=c99")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O2 -march=native -flto -std=c++11")
 
 
 #
