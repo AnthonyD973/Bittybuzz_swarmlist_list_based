@@ -21,10 +21,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ARGOS_PREFIX}/share/argos3/cmake)
 set(KILOLIB_INCLUDE_DIR "${ARGOS_INCLUDE_DIRS}/argos3/plugins/robots/kilobot/control_interface")
 
 # Find Lua
-#find_package(Lua52 REQUIRED)
+find_package(Lua52 REQUIRED)
 
 # Set include directories
-include_directories(${CMAKE_SOURCE_DIR} ${ARGOS_INCLUDE_DIRS} ${KILOLIB_INCLUDE_DIR}) #${LUA_INCLUDE_DIR})
+include_directories(${CMAKE_SOURCE_DIR} ${ARGOS_INCLUDE_DIRS} ${KILOLIB_INCLUDE_DIR} ${LUA_INCLUDE_DIR})
 
 # Set ARGoS link dir
 link_directories(${ARGOS_LIBRARY_DIRS})

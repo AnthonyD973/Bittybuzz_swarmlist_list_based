@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#set -x
-
 res1=$(date +%s.%N)
 
-# Set vars
+# Get args and set vars
+RUN_OR_SUBMIT=${1}
+BINARY_DIR="${2}"
+
 GIT_ROOT=$(git rev-parse --show-toplevel)
-BINARY_DIR="$1"
 WD="$BINARY_DIR/experiment"
 
 # Go to working dir
@@ -20,15 +20,15 @@ rm -rf ./*
 ARGOS_IN="$GIT_ROOT/src/argos/swarmlist_sim.argos"
 FINAL_RES_CSV="$WD/res.csv"
 BEHAVIOR_EXECUTABLE="$BINARY_DIR/behaviors/swarmlist_list_based"
-KILOBOT_META_STUFF_DELAY=1000
-CHECK_IF_FINISHED_DELAY=500
+KILOBOT_META_STUFF_DELAY=10
+CHECK_IF_FINISHED_DELAY=10
 NUM_EXPERIMENTS=5
 
 for topology in line # TODO Add more topologies
 do
-    for num_robots in 1000 #{10..20..10}
+    for num_robots in 10 # {10..20..10}
     do
-        for msg_drop_prob in 0.00 #0.25 0.50 0.75
+        for msg_drop_prob in 0.00 # 0.25 0.50 0.75
         do
             i=1
             while [ $i -le $NUM_EXPERIMENTS ]; do
@@ -36,10 +36,27 @@ do
                 mkdir -p "$experiment_basedir"
 
                 # Run experiment
-                qsub -F "$ARGOS_IN $BEHAVIOR_EXECUTABLE $experiment_basedir \
-                $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
-                $topology $num_robots $msg_drop_prob \
-                ${i}" $GIT_ROOT/src/experimenters/runners/job_runner
+                case $RUN_OR_SUBMIT in
+                "run")
+                    ("$GIT_ROOT/src/experimenters/runners/job_runner" \
+                     ${i} \
+                     "$ARGOS_IN" \
+                     "$BEHAVIOR_EXECUTABLE" \
+                     "$experiment_basedir" \
+                     $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
+                     $topology $num_robots $msg_drop_prob)
+                    ;;
+                "submit")
+                    qsub -F "$i $ARGOS_IN $BEHAVIOR_EXECUTABLE $experiment_basedir \
+                    $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
+                    $topology $num_robots $msg_drop_prob " \
+                    $GIT_ROOT/src/experimenters/runners/job_runner
+                    ;;
+                *)
+                    echo "Please specify either \"run\" or \"submit\" as target."
+                    exit 1
+                esac
+
 
                 i=$(($i+1))
             done
