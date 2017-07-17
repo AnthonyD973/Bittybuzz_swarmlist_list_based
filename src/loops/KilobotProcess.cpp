@@ -3,6 +3,7 @@
 #include <unistd.h>   // ftruncate
 #include <cerrno>     // strerror, errno
 #include <algorithm>  // std::for_each
+#include <numeric>    // std::accumulate
 
 #include "KilobotProcess.h"
 
