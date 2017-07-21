@@ -1,5 +1,7 @@
 #include <argos3/core/simulator/loop_functions.h>
 #include <argos3/core/utility/datatypes/datatypes.h>
+#include <argos3/plugins/simulator/entities/box_entity.h>
+#include <argos3/plugins/simulator/entities/cylinder_entity.h>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -51,18 +53,59 @@ namespace swlexp {
         void _placeLine(argos::UInt32 numRobots);
 
         /**
+         * Places a certain number of robots in a small space.
+         * @param[in] numRobots The number of robots to place.
+         */
+        void _placeCluster(argos::UInt32 numRobots);
+
+        /**
+         * Places a certain number of robots in small clusters.
+         * @param[in] numRobots The number of robots to place.
+         */
+        void _placeScaleFree(argos::UInt32 numRobots);
+
+        /**
+         * Places a certain number of robots uniformly in an area.
+         * @param[in] numRobots The number of robots to place.
+         * @param[in] area The area to place the robots in.
+         */
+        void _placeUniformly(argos::UInt32 numRobots, argos::CRange<argos::Real> area);
+
+        /**
+         * Places the walls of the arena.
+         * @param[in] numRobots The number of robots to place.
+         * @param[in] density Density of the robots.
+         */
+        void _placeWalls(argos::UInt32 numRobots);
+
+        /**
          * Finishes the experiment, in effect writing experiment data to the log
          * file.
          * @param[in] exitCode Code for how to finish the experiment.
          */
         void _finishExperiment(swlexp::ExpLoopFunc::ExitCode exitCode);
 
+    // ==============================
+    // =       STATIC METHODS       =
+    // ==============================
+
+    public:
+
+        /**
+         * Gets the communication range of the foot-bots.
+         */
+        static
+        argos::Real getRabRange() { return c_RAB_RANGE; }
+
+    private:
+
         /**
          * Determines the string that corresponds to an exit code.
          * @param[in] exitCode The exit code.
          * @return The string corresponding to the exit code.
          */
-        static std::string _exitCodeToString(swlexp::ExpLoopFunc::ExitCode exitCode);
+        static
+        std::string _exitCodeToString(swlexp::ExpLoopFunc::ExitCode exitCode);
 
     // ==============================
     // =         ATTRIBUTES         =
@@ -113,6 +156,10 @@ namespace swlexp {
          * message that should have been received is dropped.
          */
         argos::Real m_msgDropProb;
+
+    // ==============================
+    // =       STATIC MEMBERS       =
+    // ==============================
 
         /**
          * Delimiter of the CSV file.
