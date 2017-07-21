@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#PBS -N swarmlist-list-based
+#PBS -N swarmlist
 #PBS -j oe
 #PBS -l walltime=00:30:00
 
@@ -13,11 +13,12 @@ FOOTBOT_CONTROLLER_LIB="${3}"
 LOOP_FUNCTIONS_LIB="${4}"
 EXPERIMENT_BASEDIR="${5}"
 EXPERIMENT_OUTDIR="${6}"
-FOOTBOT_STATUS_LOG_DELAY=${7}
-TOPOLOGY=${8}
-NUM_ROBOTS=${9}
-PACKET_DROP_PROB=${10}
-ENTRIES_SHOULD_BECOME_INACTIVE=${11}
+FINAL_RES_CSV="${7}"
+FOOTBOT_STATUS_LOG_DELAY=${8}
+TOPOLOGY=${9}
+NUM_ROBOTS=${10}
+PACKET_DROP_PROB=${11}
+ENTRIES_SHOULD_BECOME_INACTIVE=${12}
 
 # Run job
 EXPERIMENT_DIR="$EXPERIMENT_BASEDIR/exp${EXPERIMENT_NUMBER}"
@@ -48,3 +49,6 @@ argos3 -c "$ARGOS_OUT"
 if [ "$EXPERIMENT_OUTDIR" != "" ]; then
     cp -r "${EXPERIMENT_BASEDIR}" "${EXPERIMENT_OUTDIR}"
 fi
+
+# Write experiment results to final result file.
+cat $RES_FILE | tail -n +1 >> $FINAL_RES_CSV

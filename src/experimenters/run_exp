@@ -24,7 +24,7 @@ FINAL_RES_CSV="$WD/res.csv"
 FOOTBOT_CONTROLLER_LIB="$BINARY_DIR/controllers/libFootbotController.so"
 LOOP_FUNCTIONS_LIB="$BINARY_DIR/loops/libexp_loop_func.so"
 NUM_EXPERIMENTS=2
-FOOTBOT_STATUS_LOG_DELAY=10
+FOOTBOT_STATUS_LOG_DELAY=100
 ENTRIES_SHOULD_BECOME_INACTIVE=false
 
 # Set variable experiment params
@@ -32,7 +32,7 @@ for topology in line # TODO Add more topologies
 do
     for num_robots in 10 # {10..20..10}
     do
-        for packet_drop_prob in 0.00 # 0.25 0.50 0.75
+        for packet_drop_prob in 0.75 # 0.25 0.50 0.75
         do
             i=1
             while [ $i -le $NUM_EXPERIMENTS ]; do
@@ -51,6 +51,7 @@ do
                         "$LOOP_FUNCTIONS_LIB" \
                         "$experiment_basedir" \
                         "" \
+                        "$FINAL_RES_CSV" \
                         $FOOTBOT_STATUS_LOG_DELAY \
                         $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE)
                         ;;
@@ -65,6 +66,7 @@ do
                         \"$LOOP_FUNCTIONS_LIB\" \
                         \"$experiment_basedir\" \
                         \"$WD\" \
+                        \"$FINAL_RES_CSV\" \
                         $FOOTBOT_STATUS_LOG_DELAY \
                         $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE" \
                         "$GIT_ROOT/src/experimenters/job_runner"
@@ -85,10 +87,6 @@ done
 # Concatenate smaller result CSV files into a single one.
 RESULT_CSV_FILES=$(find -type f -name "res.csv" | sort -z)
 echo -n "Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Messages received (total),Avg. bandwidth (B/(timestep*footbot)),Avg. received bandwidth (B/(timestep*footbot))" > $FINAL_RES_CSV
-for res in $RESULT_CSV_FILES
-do
-    cat $res | tail -n +1 >> $FINAL_RES_CSV
-done
 
 # Echo time taken
 
