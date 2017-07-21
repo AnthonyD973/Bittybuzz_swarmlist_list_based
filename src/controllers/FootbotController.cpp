@@ -154,21 +154,21 @@ std::string swlexp::FootbotController::getCsvStatusLog() {
     const argos::UInt32 TIME = argos::CSimulator::GetInstance().
                                GetSpace().GetSimulationClock();
 
-    argos::Real bwTx = (argos::Real)m_numMsgsTx / (TIME - m_timeAtLastLog);
-    argos::Real bwRx = (argos::Real)m_numMsgsRx / (TIME - m_timeAtLastLog);
+    argos::Real bwTx = (argos::Real)m_numMsgsTxSinceLog / (TIME - m_timeAtLastLog);
+    argos::Real bwRx = (argos::Real)m_numMsgsRxSinceLog / (TIME - m_timeAtLastLog);
 
     logData << GetId()                    << c_CSV_DELIM <<
                TIME                       << c_CSV_DELIM <<
-               m_numMsgsTx                << c_CSV_DELIM <<
+               m_numMsgsTxSinceLog        << c_CSV_DELIM <<
                bwTx                       << c_CSV_DELIM <<
-               m_numMsgsRx                << c_CSV_DELIM <<
+               m_numMsgsRxSinceLog        << c_CSV_DELIM <<
                bwRx                       << c_CSV_DELIM <<
                m_swarmlist.getSize()      << c_CSV_DELIM <<
                m_swarmlist.getNumActive() << c_CSV_DELIM <<
                '"' << m_swarmlist.serializeData(c_CSV_DELIM, ';') << "\"\n";
 
-    m_numMsgsTx = 0;
-    m_numMsgsRx = 0;
+    m_numMsgsTxSinceLog = 0;
+    m_numMsgsRxSinceLog = 0;
     m_timeAtLastLog = TIME;
 
     return std::move(logData.str());
@@ -184,8 +184,8 @@ void swlexp::FootbotController::_sendNextSwarmChunk() {
         (SWARM_CHUNK_AMOUNT) :
         (m_swarmlist.getNumActive() / c_numEntriesPerSwarmMsg + 1);
 
-    m_numMsgsTx      += NUM_MSGS_TX;
-    m_totalNumMsgsTx += NUM_MSGS_TX;
+    m_numMsgsTxSinceLog += NUM_MSGS_TX;
+    m_numMsgsTx         += NUM_MSGS_TX;
 
     for (uint8_t i = 0; i < NUM_MSGS_TX; ++i) {
         // Send a swarm message
@@ -231,8 +231,8 @@ void swlexp::FootbotController::_processMsgsRx() {
         argos::UInt8 msgType = msgRx.Data[0];
         switch (msgType) {
             case 1: {
-                m_numMsgsRx      += 1;
-                m_totalNumMsgsRx += 1;
+                m_numMsgsRxSinceLog += 1;
+                m_numMsgsRx         += 1;
                 for (uint8_t j = 0; j < c_numEntriesPerSwarmMsg; ++j) {
                     RobotId robot = *(RobotId*)&msgRx.Data[c_SWARM_ENTRY_SIZE*j+1+c_ROBOT_ID_POS];
                     // We have the most updated info about ourself ;

@@ -170,10 +170,10 @@ namespace swlexp {
         swlexp::Swarmlist m_swarmlist;       ///< Swarmlist of the foot-bot.
         argos::UInt8 m_localSwarmMask;       ///< Swarm mask of the current foot-bot.
 
-        argos::UInt64 m_numMsgsTx;           ///< Number of messages transmitted since the last status log.
-        argos::UInt64 m_numMsgsRx;           ///< Number of messages received since the last status log.
-        argos::UInt64 m_totalNumMsgsTx;      ///< Number of messages transmitted since the beginning of the experiment.
-        argos::UInt64 m_totalNumMsgsRx;      ///< Number of messages received since the beginning of the experiment.
+        argos::UInt64 m_numMsgsTxSinceLog;   ///< Number of messages transmitted since the last status log.
+        argos::UInt64 m_numMsgsRxSinceLog;   ///< Number of messages received since the last status log.
+        argos::UInt64 m_numMsgsTx;           ///< Number of messages transmitted since the beginning of the experiment.
+        argos::UInt64 m_numMsgsRx;           ///< Number of messages received since the beginning of the experiment.
         
         argos::UInt16 m_numSends;            ///< How many times we should send the message that is already set inside the RAB actuator.
         argos::UInt16 m_stepsTillTick;       ///< Number of control steps until a swarmlist tick is sent.
