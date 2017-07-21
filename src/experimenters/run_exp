@@ -18,23 +18,25 @@ rm -rf "$BINARY_DIR/experiment.old/"
 cp -r  "$WD" "$BINARY_DIR/experiment.old/"
 rm -rf ./*
 
-# Experiments
+# Set common experiment params
 ARGOS_IN="$GIT_ROOT/src/argos/swarmlist_sim.argos"
 FINAL_RES_CSV="$WD/res.csv"
-BEHAVIOR_EXECUTABLE="$BINARY_DIR/behaviors/swarmlist_list_based"
-KILOBOT_META_STUFF_DELAY=10
-CHECK_IF_FINISHED_DELAY=10
-NUM_EXPERIMENTS=1
+FOOTBOT_CONTROLLER_LIB="$BINARY_DIR/controllers/libFootbotController.so"
+LOOP_FUNCTIONS_LIB="$BINARY_DIR/loops/libexp_loop_func.so"
+NUM_EXPERIMENTS=2
+FOOTBOT_STATUS_LOG_DELAY=10
+ENTRIES_SHOULD_BECOME_INACTIVE=false
 
+# Set variable experiment params
 for topology in line # TODO Add more topologies
 do
     for num_robots in 10 # {10..20..10}
     do
-        for msg_drop_prob in 0.00 # 0.25 0.50 0.75
+        for packet_drop_prob in 0.00 # 0.25 0.50 0.75
         do
             i=1
             while [ $i -le $NUM_EXPERIMENTS ]; do
-                subdir="$WD/exp_${topology}Topology_${num_robots}Robots_${msg_drop_prob}MsgDropProb"
+                subdir="exp_${topology}Topology_${num_robots}Robots_${packet_drop_prob}MsgDropProb"
 
                 # Run experiment
                 case $RUN_OR_SUBMIT in
@@ -42,14 +44,15 @@ do
                     "run")
                         experiment_basedir="$WD/$subdir"
                         mkdir -p "$experiment_basedir"
-                        ("$GIT_ROOT/src/experimenters/runners/job_runner" \
+                        ("$GIT_ROOT/src/experimenters/job_runner" \
                         $i \
                         "$ARGOS_IN" \
-                        "$BEHAVIOR_EXECUTABLE" \
+                        "$FOOTBOT_CONTROLLER_LIB" \
+                        "$LOOP_FUNCTIONS_LIB" \
                         "$experiment_basedir" \
                         "" \
-                        $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
-                        $topology $num_robots $msg_drop_prob)
+                        $FOOTBOT_STATUS_LOG_DELAY \
+                        $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE)
                         ;;
 
                     "submit")
@@ -58,12 +61,13 @@ do
                         qsub -F " \
                         $i \
                         \"$ARGOS_IN\" \
-                        \"$BEHAVIOR_EXECUTABLE\" \
+                        \"$FOOTBOT_CONTROLLER_LIB\" \
+                        \"$LOOP_FUNCTIONS_LIB\" \
                         \"$experiment_basedir\" \
                         \"$WD\" \
-                        $KILOBOT_META_STUFF_DELAY $CHECK_IF_FINISHED_DELAY $NUM_EXPERIMENTS \
-                        $topology $num_robots $msg_drop_prob " \
-                        "$GIT_ROOT/src/experimenters/runners/job_runner"
+                        $FOOTBOT_STATUS_LOG_DELAY \
+                        $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE" \
+                        "$GIT_ROOT/src/experimenters/job_runner"
                         ;;
 
                     *)
@@ -80,7 +84,7 @@ done
 
 # Concatenate smaller result CSV files into a single one.
 RESULT_CSV_FILES=$(find -type f -name "res.csv" | sort -z)
-echo -n "Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Messages received (total),Avg. bandwidth (B/(timestep*kilobot)),Avg. received bandwidth (B/(timestep*kilobot))" > $FINAL_RES_CSV
+echo -n "Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Messages received (total),Avg. bandwidth (B/(timestep*footbot)),Avg. received bandwidth (B/(timestep*footbot))" > $FINAL_RES_CSV
 for res in $RESULT_CSV_FILES
 do
     cat $res | tail -n +1 >> $FINAL_RES_CSV

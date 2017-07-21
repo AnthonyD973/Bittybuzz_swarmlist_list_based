@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#PBS -N swarmlist-list-based
+#PBS -j oe
+#PBS -l walltime=00:30:00
+
+#stop on errors
+set -e
+
+# Get experiment params
+EXPERIMENT_NUMBER=${1}
+ARGOS_IN="${2}"
+FOOTBOT_CONTROLLER_LIB="${3}"
+LOOP_FUNCTIONS_LIB="${4}"
+EXPERIMENT_BASEDIR="${5}"
+EXPERIMENT_OUTDIR="${6}"
+FOOTBOT_STATUS_LOG_DELAY=${7}
+TOPOLOGY=${8}
+NUM_ROBOTS=${9}
+PACKET_DROP_PROB=${10}
+ENTRIES_SHOULD_BECOME_INACTIVE=${11}
+
+# Run job
+EXPERIMENT_DIR="$EXPERIMENT_BASEDIR/exp${EXPERIMENT_NUMBER}"
+mkdir -p "$EXPERIMENT_DIR" 2> /dev/null
+ARGOS_OUT="$EXPERIMENT_DIR/config.argos"
+LOG_FILE="$EXPERIMENT_DIR/log.txt"
+RES_FILE="$EXPERIMENT_DIR/res.csv"
+FOOTBOT_CSV_FILE="$EXPERIMENT_DIR/status_logs.csv"
+
+# Generate argos file with the appropriate params
+sed -e "s|EXPERIMENT_NUMBER|$EXPERIMENT_NUMBER|g" \
+    -e "s|FOOTBOT_CONTROLLER_LIB|$FOOTBOT_CONTROLLER_LIB|g" \
+    -e "s|LOOP_FUNCTIONS_LIB|$LOOP_FUNCTIONS_LIB|g" \
+    -e "s|LOG_FILE|$LOG_FILE|g" \
+    -e "s|RES_FILE|$RES_FILE|g" \
+    -e "s|FOOTBOT_CSV_FILE|$FOOTBOT_CSV_FILE|g" \
+    -e "s|FOOTBOT_STATUS_LOG_DELAY|$FOOTBOT_STATUS_LOG_DELAY|g" \
+    -e "s|TOPOLOGY|$TOPOLOGY|g" \
+    -e "s|NUM_ROBOTS|$NUM_ROBOTS|g" \
+    -e "s|PACKET_DROP_PROB|$PACKET_DROP_PROB|g" \
+    -e "s|ENTRIES_SHOULD_BECOME_INACTIVE|$ENTRIES_SHOULD_BECOME_INACTIVE|g" \
+    "$ARGOS_IN" > "$ARGOS_OUT"
+
+# Perform experiment
+argos3 -c "$ARGOS_OUT"
+
+# Copy generated files
+if [ "$EXPERIMENT_OUTDIR" != "" ]; then
+    cp -r "${EXPERIMENT_BASEDIR}" "${EXPERIMENT_OUTDIR}"
+fi
