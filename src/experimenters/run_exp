@@ -28,7 +28,7 @@ FOOTBOT_STATUS_LOG_DELAY=100
 ENTRIES_SHOULD_BECOME_INACTIVE=false
 
 # Set variable experiment params
-for topology in line scalefree
+for topology in line
 do
     for num_robots in 10 # {10..20..10}
     do

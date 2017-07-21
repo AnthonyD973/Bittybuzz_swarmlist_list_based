@@ -5,13 +5,13 @@
 #include "ExpLoopFunc.h"
 
 namespace swlexp {
-    const argos::Real   ExpLoopFunc::c_RAB_RANGE   = 0.5;
+    const argos::Real   ExpLoopFunc::c_RAB_RANGE   = 0.19;
     argos::UInt16       ExpLoopFunc::c_packetSize;
 }
 
 static const std::string   FB_CONTROLLER    = "fb_ctrl";
 static const argos::UInt32 MAX_PLACE_TRIALS = 20;
-static const argos::UInt32 MAX_ROBOT_TRIALS = 20;
+static const argos::UInt32 MAX_ROBOT_TRIALS = 20000;
 static const argos::Real   FOOTBOT_RADIUS   = 0.085036758f;
 static const argos::Real   SF_RANGE         = swlexp::ExpLoopFunc::getRabRange() / Sqrt(2);
 static const argos::Real   HALF_SF_RANGE    = SF_RANGE * 0.5f;
@@ -66,7 +66,6 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     else {
         THROW_ARGOSEXCEPTION("Unknown topology: " << topology);
     }
-    
 
     // Open files.
     m_expFbCsv.open(m_expFbCsvName, std::ios::app);
@@ -112,8 +111,6 @@ void swlexp::ExpLoopFunc::Destroy() {
     m_expRes.flush();
     m_expLog.flush();
     m_expFbCsv.flush();
-
-    // Other resources are closed when they get out of scope.
 }
 
 /****************************************/
@@ -145,7 +142,7 @@ bool swlexp::ExpLoopFunc::IsExperimentFinished() {
 /****************************************/
 
 void swlexp::ExpLoopFunc::_placeLine(argos::UInt32 numRobots) {
-    static const argos::Real X_SPACING = 0.00, Y_SPACING = 0.40;
+    static const argos::Real X_SPACING = 0.00, Y_SPACING = 0.18;
     // static const argos::Real X_BASEPOS = 0.00, Y_BASEPOS = 0.00, Z_BASEPOS = 0.00;
 
     // // Resize arena.
@@ -316,7 +313,7 @@ void swlexp::ExpLoopFunc::_placeScaleFree(argos::UInt32 un_robots) {
       } while(!bDone && unRobotTrials <= MAX_ROBOT_TRIALS);
       /* Was the robot placed successfully? */
       if(!bDone) {
-         THROW_ARGOSEXCEPTION("Can't place " << cFBId.str());
+         THROW_ARGOSEXCEPTION("SF: Can't place " << cFBId.str());
       }
       /* Yes, insert it in the data structure */
       ++psPivot->Conns;
@@ -442,7 +439,7 @@ void swlexp::ExpLoopFunc::_placeUniformly(argos::UInt32 un_robots,
          bDone = MoveEntity(pcFB->GetEmbodiedEntity(), cFBPos, cFBRot);
       } while(!bDone && unTrials <= MAX_PLACE_TRIALS);
       if(!bDone) {
-         THROW_ARGOSEXCEPTION("Can't place " << cFBId.str());
+         THROW_ARGOSEXCEPTION("UF: Can't place " << cFBId.str());
       }
    }
 }
