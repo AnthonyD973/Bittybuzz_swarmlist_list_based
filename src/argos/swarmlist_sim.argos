@@ -48,7 +48,7 @@
         num_robots="NUM_ROBOTS"
         topology="TOPOLOGY"/>
 
-    <arena size="300,300,5" center="0,0,0.25"/>
+    <arena size="3000,3000,5" center="0,0,0.25"/>
 
     <media>
         <range_and_bearing id="fbcomm"/>
@@ -60,7 +60,7 @@
     </physics_engines>
 
     <visualization>
-           <!-- <qt-opengl>
+            <!-- <qt-opengl>
             <camera>
                 <placement idx="0" position="-4.2486,0.05,4.26981" look_at="-3.5415,0.05,3.56271" up="0.707107,0,0.707107" lens_focal_length="20"/>
             </camera>
