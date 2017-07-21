@@ -189,7 +189,7 @@ void swlexp::FootbotController::_sendNextSwarmChunk() {
 
     for (uint8_t i = 0; i < NUM_MSGS_TX; ++i) {
         // Send a swarm message
-        argos::CByteArray msgTx(10);
+        argos::CByteArray msgTx(c_packetSize);
         msgTx[0] = 1;
         for (uint8_t j = 0; j < c_numEntriesPerSwarmMsg; ++j) {
             // Increment our own Lamport clock so that others are aware

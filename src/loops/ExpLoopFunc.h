@@ -53,12 +53,6 @@ namespace swlexp {
         void _placeLine(argos::UInt32 numRobots);
 
         /**
-         * Places a certain number of robots in a small space.
-         * @param[in] numRobots The number of robots to place.
-         */
-        void _placeCluster(argos::UInt32 numRobots);
-
-        /**
          * Places a certain number of robots in small clusters.
          * @param[in] numRobots The number of robots to place.
          */

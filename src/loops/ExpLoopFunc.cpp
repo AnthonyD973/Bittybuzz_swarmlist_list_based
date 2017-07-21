@@ -13,7 +13,6 @@ static const std::string   FB_CONTROLLER    = "fb_ctrl";
 static const argos::UInt32 MAX_PLACE_TRIALS = 20;
 static const argos::UInt32 MAX_ROBOT_TRIALS = 20;
 static const argos::Real   FOOTBOT_RADIUS   = 0.085036758f;
-static const argos::Real   FB_AREA          = ARGOS_PI * argos::Square(FOOTBOT_RADIUS);
 static const argos::Real   SF_RANGE         = swlexp::ExpLoopFunc::getRabRange() / Sqrt(2);
 static const argos::Real   HALF_SF_RANGE    = SF_RANGE * 0.5f;
 static const argos::Real   WALL_THICKNESS   = 0.1;
@@ -60,9 +59,6 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     argos::GetNodeAttribute(t_tree, "topology", topology);
     if (topology == "line") {
         _placeLine(numRobots);
-    }
-    else if (topology == "cluster") {
-        _placeCluster(numRobots);
     }
     else if (topology == "scalefree") {
         _placeScaleFree(numRobots);
@@ -183,17 +179,6 @@ void swlexp::ExpLoopFunc::_placeLine(argos::UInt32 numRobots) {
         
         AddEntity(*fb);
     }
-}
-
-/****************************************/
-/****************************************/
-
-void swlexp::ExpLoopFunc::_placeCluster(argos::UInt32 un_robots) {
-   /* Calculate side of the region in which the robots are scattered */
-   argos::Real fHalfSide = Sqrt((FB_AREA * un_robots) / DENSITY) / 2.0f;
-   argos::CRange<argos::Real> cAreaRange(-fHalfSide, fHalfSide);
-   /* Place robots */
-   _placeUniformly(un_robots, cAreaRange);
 }
 
 /****************************************/
