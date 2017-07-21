@@ -52,6 +52,7 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     argos::GetNodeAttribute(t_tree, "res", m_expResName);
     argos::GetNodeAttribute(t_tree, "log", m_expLogName);
     argos::GetNodeAttribute(t_tree, "fb_csv", m_expFbCsvName);
+    argos::GetNodeAttribute(t_tree, "realtime_output_file", m_expRealtimeOutputName);
     argos::GetNodeAttribute(t_tree, "fb_status_log_delay", m_expStatusLogDelay);
     argos::UInt32 numRobots;
     argos::GetNodeAttribute(t_tree, "num_robots", numRobots);
@@ -71,6 +72,12 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     m_expFbCsv.open(m_expFbCsvName, std::ios::app);
     if (m_expFbCsv.fail()) {
         THROW_ARGOSEXCEPTION("Could not open CSV file \"" << m_expFbCsvName << "\".");
+    }
+    if (m_expRealtimeOutputName != "") {
+        m_expRealtimeOutput.open(m_expRealtimeOutputName, std::ios::app);
+        if (m_expFbCsv.fail()) {
+            THROW_ARGOSEXCEPTION("Could not open realtime CSV file \"" << m_expFbCsvName << "\".");
+        }
     }
     m_expRes.open(m_expResName, std::ios::app);
     if (m_expRes.fail()) {
@@ -117,14 +124,24 @@ void swlexp::ExpLoopFunc::Destroy() {
 /****************************************/
 
 void swlexp::ExpLoopFunc::PostStep() {
-    static argos::UInt32 callsTillMetaStuff = m_expStatusLogDelay - 1;
+    static argos::UInt32 callsTillStatusLog = m_expStatusLogDelay - 1;
+    static argos::UInt16 metaStuffTillRealtimeOuptut = 30;
 
-    if (callsTillMetaStuff == 0) {
-        callsTillMetaStuff = m_expStatusLogDelay;
+    if (callsTillStatusLog == 0) {
+        callsTillStatusLog = m_expStatusLogDelay;
         swlexp::FootbotController::writeStatusLogs(m_expFbCsv);
+
+        if (metaStuffTillRealtimeOuptut == 0) {
+            metaStuffTillRealtimeOuptut = 30;
+            if (m_expRealtimeOutputName != "") {
+                swlexp::FootbotController::writeStatusLogs(m_expRealtimeOutput);
+                m_expRealtimeOutput.flush();
+            }
+        }
+        --metaStuffTillRealtimeOuptut;
     }
 
-    --callsTillMetaStuff;
+    --callsTillStatusLog;
 }
 
 /****************************************/

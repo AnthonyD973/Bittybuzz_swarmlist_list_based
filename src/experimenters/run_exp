@@ -9,14 +9,14 @@ BINARY_DIR="${2}"
 GIT_ROOT=$(git rev-parse --show-toplevel)
 WD="$BINARY_DIR/experiment"
 
+# Backup and remove existing simulation results
+rm -rf "$BINARY_DIR/experiment.old/"
+cp -r  "$WD" "$BINARY_DIR/experiment.old/" 2> /dev/null
+rm -rf "$WD"
+
 # Go to working dir
 mkdir -p "$WD"
 cd "$WD"
-
-# Backup and remove existing simulation results
-rm -rf "$BINARY_DIR/experiment.old/"
-cp -r  "$WD" "$BINARY_DIR/experiment.old/"
-rm -rf "$WD/*"
 
 # Set common experiment params
 ARGOS_IN="$GIT_ROOT/src/argos/swarmlist_sim.argos"
@@ -35,7 +35,8 @@ do
         for packet_drop_prob in 0.00 # 0.25 0.50 0.75
         do
             i=1
-            while [ $i -le $NUM_EXPERIMENTS ]; do
+            while [ $i -le $NUM_EXPERIMENTS ]
+            do
                 subdir="exp_${topology}Topology_${num_robots}Robots_${packet_drop_prob}MsgDropProb"
 
                 # Run experiment
@@ -51,6 +52,7 @@ do
                         "$LOOP_FUNCTIONS_LIB" \
                         "$experiment_basedir" \
                         "" \
+                        "" \
                         "$FINAL_RES_CSV" \
                         $FOOTBOT_STATUS_LOG_DELAY \
                         $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE)
@@ -58,6 +60,7 @@ do
 
                     "submit")
                         experiment_basedir="$LSCRATCH/$subdir"
+                        realtime_output_file="$WD/exp${i}/realtime_output.txt"
                         qsub -F " \
                         $i \
                         \"$ARGOS_IN\" \
@@ -65,6 +68,7 @@ do
                         \"$LOOP_FUNCTIONS_LIB\" \
                         \"$experiment_basedir\" \
                         \"$WD\" \
+                        \"$realtime_output_file\" \
                         \"$FINAL_RES_CSV\" \
                         $FOOTBOT_STATUS_LOG_DELAY \
                         $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE" \

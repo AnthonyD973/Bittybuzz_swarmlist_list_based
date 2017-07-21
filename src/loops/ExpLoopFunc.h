@@ -130,14 +130,30 @@ namespace swlexp {
         std::ofstream m_expLog;
 
         /**
-         * Path to the file that footbots log CSV data to every few timesteps.
+         * Path to the file that footbots log status data to every few timesteps.
          */
         std::string m_expFbCsvName;
 
         /**
-         * File that footbots log CSV data to every few timesteps.
+         * File that footbots log status data to every few timesteps.
          */
         std::ofstream m_expFbCsv;
+
+        /**
+         * Path to the file that we perform status logs into. Unlike the
+         * foot-bots' status logs, whose contents we do not know on the batch
+         * server until the end of the experiment, we can view the contents
+         * of this file while the experiment is running.
+         */
+        std::string m_expRealtimeOutputName;
+
+        /**
+         * File that we perform status logs into. Unlike the
+         * foot-bots' status logs, whose contents we do not know on the batch
+         * server until the end of the experiment, we can view the contents
+         * of this file while the experiment is running.
+         */
+        std::ofstream m_expRealtimeOutput;
 
         /**
          * @brief How often (in timesteps) wait until we do meta things, i.e.,
