@@ -41,9 +41,14 @@ void swlexp::FootbotController::Init(argos::TConfigurationNode& t_node) {
 
     // Initialize stuff
     m_timeAtLastLog      = -1;
+    m_numMsgsTxSinceLog  = 0;
+    m_numMsgsRxSinceLog  = 0;
+    m_numMsgsTx          = 0;
+    m_numMsgsRx          = 0;
     m_stepsTillTick      = STEPS_PER_TICK;
     m_stepsTillNextChunk = SWARM_CHUNK_DELAY;
     m_localSwarmMask     = 0x01;
+    m_numSends           = 0;
 
     // Get actuators and sensors
     m_leds    = GetActuator<argos::CCI_LEDsActuator           >("leds"             );

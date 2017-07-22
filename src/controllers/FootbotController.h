@@ -198,7 +198,7 @@ namespace swlexp {
 
         static std::unordered_set<FootbotController*> c_controllers; ///< Existing controllers.
 
-        static const char c_CSV_DELIM = ','; ///< Delimiter between two CSV values.
+        static const char c_CSV_DELIM = ',';           ///< Delimiter between two CSV values.
 
         static argos::UInt16 c_packetSize;             ///< Size of a message.
         static argos::UInt16 c_numEntriesPerSwarmMsg;  ///< The number of data entries we transmit about other robots per packet.
