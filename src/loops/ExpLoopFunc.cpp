@@ -330,7 +330,7 @@ void swlexp::ExpLoopFunc::_placeScaleFree(argos::UInt32 un_robots) {
       } while(!bDone && unRobotTrials <= MAX_ROBOT_TRIALS);
       /* Was the robot placed successfully? */
       if(!bDone) {
-         THROW_ARGOSEXCEPTION("SF: Can't place " << cFBId.str());
+         THROW_ARGOSEXCEPTION(__FUNCTION__ << ": Can't place " << cFBId.str());
       }
       /* Yes, insert it in the data structure */
       ++psPivot->Conns;
@@ -456,7 +456,7 @@ void swlexp::ExpLoopFunc::_placeUniformly(argos::UInt32 un_robots,
          bDone = MoveEntity(pcFB->GetEmbodiedEntity(), cFBPos, cFBRot);
       } while(!bDone && unTrials <= MAX_PLACE_TRIALS);
       if(!bDone) {
-         THROW_ARGOSEXCEPTION("UF: Can't place " << cFBId.str());
+         THROW_ARGOSEXCEPTION(__FUNCTION__ << ": Can't place " << cFBId.str());
       }
    }
 }

@@ -15,16 +15,9 @@ namespace swlexp {
     // ===============================
 
     /**
-     * The maximum number of robots a robot can remember swarm data about.
-     * If memory is not an issue but safety is, this value can be set
-     * to the number of robots in the experiment.
-     */
-    #define ROBOT_SWARMLIST_CAP 100
-
-    /**
      * The number of timesteps between the emission of swarm chunks.
      */
-    #define SWARM_CHUNK_DELAY 5
+    #define SWARM_CHUNK_DELAY 1
 
     /**
      * The maximum number of swarm messages to send per swarm chunk.
