@@ -75,9 +75,12 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     }
     if (m_expRealtimeOutputName != "") {
         m_expRealtimeOutput.open(m_expRealtimeOutputName, std::ios::app);
-        if (m_expFbCsv.fail()) {
+        if (m_expRealtimeOutput.fail()) {
             THROW_ARGOSEXCEPTION("Could not open realtime CSV file \"" << m_expFbCsvName << "\".");
         }
+    }
+    else {
+        argos::LOG << "No realtime file used.\n";
     }
     m_expRes.open(m_expResName, std::ios::app);
     if (m_expRes.fail()) {
