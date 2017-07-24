@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <ctime>
 
 #include "FootbotController.h"
 
@@ -154,6 +155,11 @@ namespace swlexp {
          * of this file while the experiment is running.
          */
         std::ofstream m_expRealtimeOutput;
+
+        /**
+         * Time for the realtime output file.
+         */
+        std::time_t m_timeSinceLastRealtimeOutput;
 
         /**
          * @brief How often (in timesteps) wait until we do meta things, i.e.,

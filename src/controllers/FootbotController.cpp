@@ -159,8 +159,17 @@ std::string swlexp::FootbotController::getCsvStatusLog() {
     const argos::UInt32 TIME = argos::CSimulator::GetInstance().
                                GetSpace().GetSimulationClock();
 
-    argos::Real bwTx = (argos::Real)m_numMsgsTxSinceLog / (TIME - m_timeAtLastLog);
-    argos::Real bwRx = (argos::Real)m_numMsgsRxSinceLog / (TIME - m_timeAtLastLog);
+    argos::Real bwTx;
+    argos::Real bwRx;
+
+    if (TIME != m_timeAtLastLog) {
+        bwTx = (argos::Real)m_numMsgsTxSinceLog / (TIME - m_timeAtLastLog);
+        bwRx = (argos::Real)m_numMsgsRxSinceLog / (TIME - m_timeAtLastLog);
+    }
+    else {
+        bwTx = 0;
+        bwRx = 0;
+    }
 
     logData << GetId()                    << c_CSV_DELIM <<
                TIME                       << c_CSV_DELIM <<
