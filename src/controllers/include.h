@@ -17,7 +17,7 @@ namespace swlexp {
     /**
      * The number of timesteps between the emission of swarm chunks.
      */
-    #define SWARM_CHUNK_DELAY 1
+    #define STEPS_PER_CHUNK 1
 
     /**
      * The maximum number of swarm messages to send per swarm chunk.
@@ -30,7 +30,7 @@ namespace swlexp {
      * is considered inactive.
      * @note <b>Max value: 255</b>
      */
-    #define SWARMLIST_TICKS_TO_INACTIVE (uint8_t)10
+    #define SWARMLIST_TICKS_TO_INACTIVE (argos::UInt8)10
 
     /**
      * The number of timesteps before each swarmlist tick.
@@ -39,7 +39,7 @@ namespace swlexp {
      * @note <b>Max value: 65535</b>
      * @see SWARMLIST_TICKS_TO_INACTIVE
      */
-    #define STEPS_PER_TICK (uint16_t)10
+    #define STEPS_PER_TICK (argos::UInt16)10
 
     /**
      * The maximum number of ticks a Lamport clock sould be above an old
@@ -50,7 +50,7 @@ namespace swlexp {
     // ===============================
     // =      TYPE DEFINITIONS       =
     // ===============================
-    
+
     /**
      * Type for the ID of a robot.
      */
@@ -92,6 +92,15 @@ namespace swlexp {
     typedef Lamport<argos::UInt8 > Lamport8;
     typedef Lamport<argos::UInt16> Lamport16;
     typedef Lamport<argos::UInt32> Lamport32;
+
+    // ==============================
+    // =     UTILITY FUNCTIONS      =
+    // ==============================
+
+    /**
+     * Returns the size of a packet.
+     */
+    argos::UInt16 getPacketSize();
 
 }
 

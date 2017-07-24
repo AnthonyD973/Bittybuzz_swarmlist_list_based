@@ -30,7 +30,7 @@ ENTRIES_SHOULD_BECOME_INACTIVE=false
 # Set variable experiment params
 for topology in line
 do
-    for num_robots in 50 # {10..20..10}
+    for num_robots in 20 # {10..20..10}
     do
         for packet_drop_prob in 0.00 # 0.25 0.50 0.75
         do

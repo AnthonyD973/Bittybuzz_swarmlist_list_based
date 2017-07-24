@@ -11,6 +11,7 @@
 #include <string>
 
 #include "include.h"
+#include "Messenger.h"
 
 namespace swlexp {
 
@@ -18,6 +19,11 @@ namespace swlexp {
      * The data that we know about other robots.
      */
     class Swarmlist {
+
+    protected:
+
+        friend class FootbotController;
+        friend class SwarmMsgCallback;
 
     // ==============================
     // =       NESTED SYMBOLS       =
@@ -63,6 +69,12 @@ namespace swlexp {
             void resetTimer() { m_timeToInactive = SWARMLIST_TICKS_TO_INACTIVE; }
 
             /**
+             * Sets the entry's swarm mask.
+             */
+            inline
+            void setSwarmMask(argos::UInt8 swarmMask) { m_swarmMask = swarmMask; }
+
+            /**
              * Increments the entry's lamport clock.
              */
             void incrementLamport() { ++m_lamport; }
@@ -74,69 +86,71 @@ namespace swlexp {
             argos::UInt8 m_timeToInactive; ///< Number of swarmlist ticks until we consider this robot to be inactive.
         };
 
+        /**
+         * Callback class to handle swarm messages.
+         */
+        class SwarmMsgCallback : public Messenger::Callback {
+        public:
+            SwarmMsgCallback(Swarmlist* swarmlist) : m_swarmlist(swarmlist) { }
+            
+            /**
+             * Deals with an incoming swarm message.
+             */
+            virtual
+            void operator()(const argos::CCI_RangeAndBearingSensor::SPacket& packet);
+
+        private:
+            Swarmlist* m_swarmlist;
+        };
+
     // ==============================
     // =          METHODS           =
     // ==============================
 
     public:
 
-        Swarmlist();
+        Swarmlist(Messenger* msn);
 
         ~Swarmlist();
-
-        inline
-        argos::UInt32 getSize() const { return m_data.size(); }
-
-        inline
-        argos::UInt32 getNumActive() const { return m_numActive; }
-
-        inline
-        Entry getNext(RobotId id) {
-            Entry& e = m_data[m_next];
-            if (e.getRobotId() == id)
-                e.incrementLamport();
-            return e;
-        }
-
-        /**
-         * Gets an entry of the swarmlist given its robot ID.
-         * @throw std::out_of_range The ID is not found.
-         * @param[in] robot The robot ID whose data to fetch.
-         * @return The entry of the swarmlist corresponding to the passed ID.
-         */
-        const Entry& get(RobotId robot) const;
 
         /**
          * Sets which robot owns this swarmlist.
          * @param[in] id The robot owning this swarmlist.
          */
         inline
-        void setOwnerId(RobotId id) { m_id = id; }
+        void setOwnerId(RobotId id) { m_id = id; _update(m_id, 0, 0); }
 
-
-        /**
-         * Sets the entry inside the swarmlist, and resets the entry's timer.
-         * @param[in] robot The robot ID this entry is for.
-         * @param[in] swarmMask The payload data.
-         * @param[in] lamport The time at which this entry was created by
-         * 'robot'.
-         */
-        void update(RobotId robot, argos::UInt8 swarmMask, swlexp::Lamport8 lamport);
+        void setSwarmMask(argos::UInt8 swarmMask);
 
         /**
-         * Removes 1 from all timers, and deals with old entries.
-         */
-        void tick();
-
-        /**
-         * Changes the next robot whose data to send.
+         * Determines the total number of entries, be they active or inactive.
+         * @return The total number of entries.
          */
         inline
-        void next() {
-            ++m_next;
-            if (m_next >= m_data.size())
-                m_next = 0;
-        }
+        argos::UInt32 getSize() const { return m_data.size(); }
+
+        /**
+         * Determines the total number of active entries.
+         * @return The number of active entries.
+         */
+        inline
+        argos::UInt32 getNumActive() const { return m_numActive; }
+
+        /**
+         * Gets the number of swarm messages sent by the swarmlist
+         * since the beginning of the experiment.
+         */
+        inline
+        argos::UInt64 getNumMsgsTx() const { return m_numMsgsTx; }
+
+        /**
+         * Gets the number of swarm messages received by the swarmlist
+         * since the beginning of the experiment.
+         * @return The number of messages received by the footbots of this
+         * controller since the beginning of the experiment.
+         */
+        inline
+        argos::UInt64 getNumMsgsRx() const { return m_numMsgsRx; }
 
         /**
          * Composes a string consisting of a set of
@@ -150,10 +164,78 @@ namespace swlexp {
 
     private:
 
+        // Init, control step
+
+        /**
+         * Initializes the swarmlist.
+         */
+        void _init();
+
+        /**
+         * Function that should be called exactly once every timestep.
+         */
+        inline
+        void _controlStep() {
+            if (m_stepsTillChunk == 0) {
+                m_stepsTillChunk = STEPS_PER_CHUNK;
+                _sendSwarmChunk();
+            }
+            --m_stepsTillChunk;
+
+            if (m_stepsTillTick == 0) {
+                m_stepsTillTick = STEPS_PER_TICK;
+                _tick();
+            }
+            --m_stepsTillTick;
+        }
+
+        // Other functions
+
+        /**
+         * Returns a copy of the next entry we will send.
+         * This takes into account if we have new entries.
+         * @return A copy of the next entry we will send.
+         */
+        Entry _getNext(RobotId id);
+
+        /**
+         * Gets an entry of the swarmlist given its robot ID.
+         * @throw std::out_of_range The ID is not found.
+         * @param[in] robot The robot ID whose data to fetch.
+         * @return The entry of the swarmlist corresponding to the passed ID.
+         */
+        const Entry& _get(RobotId robot) const;
+
         /**
          * Adds/Modifies an entry of the swarmlist.
          */
         void _set(const Entry& entry);
+
+
+        /**
+         * Sets the entry inside the swarmlist, and resets the entry's timer.
+         * @param[in] robot The robot ID this entry is for.
+         * @param[in] swarmMask The payload data.
+         * @param[in] lamport The time at which this entry was created by
+         * 'robot'.
+         */
+        void _update(RobotId robot, argos::UInt8 swarmMask, swlexp::Lamport8 lamport);
+
+        /**
+         * Removes 1 from all timers, and deals with old entries.
+         */
+        void _tick();
+
+        /**
+         * Changes the next robot whose data to send.
+         * @note This takes into account if we have new entries.
+         */
+        void _next();
+
+        /**
+         * Sends a set of swarm messages.
+         */
+        void _sendSwarmChunk();
 
     // ==============================
     // =       STATIC METHODS       =
@@ -186,11 +268,22 @@ namespace swlexp {
 
     private:
 
-        RobotId m_id;                                           ///< ID of the robot whose swarmlist this is.
-        std::vector<Entry> m_data;                              ///< Index    => Entry in O(1)
+        RobotId m_id;                   ///< ID of the robot whose swarmlist this is.
+        std::vector<Entry> m_data;      ///< Index => Entry in O(1)
+        std::vector<Entry> m_newData;   ///< Index => Entry in O(1) ; data of the new robots.
         std::unordered_map<RobotId, argos::UInt32> m_idToIndex; ///< Robot ID => Index in O(1)
-        argos::UInt32 m_numActive;                              ///< Number of active entries.
-        argos::UInt32 m_next;                                   ///< The index of the next entry to send via a swarm chunk.
+
+        argos::UInt32 m_numActive;      ///< Number of active entries.
+        argos::UInt32 m_next;           ///< The index of the next entry to send via a swarm chunk.
+        argos::UInt32 m_newNext;        ///< The index of the next new entry to send via a swarm chunk when m_newData is not empty.
+        argos::UInt16 m_stepsTillChunk; ///< Number of control steps until we brodcast the next swarm chunk.
+        argos::UInt32 m_stepsTillTick;  ///< Number of control steps until we perform a swarmlist tick.
+
+        argos::UInt64 m_numMsgsTx;      ///< Number of swarm messages transmitted since the beginning of the experiment.
+        argos::UInt64 m_numMsgsRx;      ///< Number of swarm messages received since the beginning of the experiment.
+
+        Messenger* m_msn;               ///< Messenger object.
+        SwarmMsgCallback m_swMsgCb;     ///< Callback object.
 
     // ==============================
     // =       STATIC MEMBERS       =
@@ -200,6 +293,12 @@ namespace swlexp {
 
         static bool c_entriesShouldBecomeInactive; ///< Whether existing entrie should become inactive after a while.
         static argos::UInt64 c_totalNumActive;     ///< The sum, over all robots, of the number of active entries.
+
+        static argos::UInt16 c_numEntriesPerSwarmMsg;  ///< The number of data entries we transmit about other robots per packet.
+        static const argos::UInt16 c_SWARM_ENTRY_SIZE; ///< Size of a single swarmlist entry in a message.
+        static const argos::UInt8 c_ROBOT_ID_POS;      ///< Offset, inside a swarmlist entry, of the robot's ID.
+        static const argos::UInt8 c_SWARM_MASK_POS;    ///< Offset, inside a swarmlist entry, of the swarm mask.
+        static const argos::UInt8 c_LAMPORT_POS;       ///< Offset, inside a swarmlist entry, of the lamport clock.
 
     };
 }
