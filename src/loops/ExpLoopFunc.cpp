@@ -140,12 +140,12 @@ void swlexp::ExpLoopFunc::PostStep() {
 
     --callsTillStatusLog;
 
-    // Write to realtime status log every 1 minute.
-    static const argos::UInt32 DELAY_FOR_REALTIME_LOG = 60;
+    // Write to realtime status log every 5 minutes.
+    static const argos::UInt32 DELAY_FOR_REALTIME_LOG = 300;
     std::time_t time = std::time(NULL);
     if (time - m_timeSinceLastRealtimeOutput >= DELAY_FOR_REALTIME_LOG) {
         m_timeSinceLastRealtimeOutput = time;
-        swlexp::FootbotController::writeStatusLogs(m_expRealtimeOutput);
+        swlexp::FootbotController::writeStatusLogs(m_expRealtimeOutput, false);
         m_expRealtimeOutput.flush();
     }
 }
