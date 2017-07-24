@@ -37,20 +37,20 @@ do
             i=1
             while [ $i -le $NUM_EXPERIMENTS ]
             do
-                subdir="exp_${topology}Topology_${num_robots}Robots_${packet_drop_prob}MsgDropProb"
+                subdir="exp_${topology}Topology_${num_robots}Robots_${packet_drop_prob}MsgDropProb/exp${i}"
 
                 # Run experiment
                 case $RUN_OR_SUBMIT in
 
                     "run")
-                        experiment_basedir="$WD/$subdir"
-                        mkdir -p "$experiment_basedir"
+                        experiment_dir="$WD/$subdir"
+                        mkdir -p "$experiment_dir"
                         ("$GIT_ROOT/src/experimenters/job_runner" \
                         $i \
                         "$ARGOS_IN" \
                         "$FOOTBOT_CONTROLLER_LIB" \
                         "$LOOP_FUNCTIONS_LIB" \
-                        "$experiment_basedir" \
+                        "$experiment_dir" \
                         "" \
                         "" \
                         "$FINAL_RES_CSV" \
@@ -59,15 +59,22 @@ do
                         ;;
 
                     "submit")
-                        experiment_basedir="$LSCRATCH/$subdir"
-                        realtime_output_file="$WD/exp${i}/realtime_output.txt"
+                        experiment_dir="$LSCRATCH/$subdir"
+                        experiment_outdir="$WD/$subdir"
+
+                        # Create ouptut dir and realtime file.
+                        mkdir -p "$experiment_outdir"
+                        realtime_output_file="$experiment_outdir/realtime_output.txt"
+                        echo "" > "$realtime_output_file"
+
+                        # Submit experiment.
                         qsub -F " \
                         $i \
                         \"$ARGOS_IN\" \
                         \"$FOOTBOT_CONTROLLER_LIB\" \
                         \"$LOOP_FUNCTIONS_LIB\" \
-                        \"$experiment_basedir\" \
-                        \"$WD\" \
+                        \"$experiment_dir\" \
+                        \"$experiment_outdir\" \
                         \"$realtime_output_file\" \
                         \"$FINAL_RES_CSV\" \
                         $FOOTBOT_STATUS_LOG_DELAY \
