@@ -118,7 +118,7 @@ std::string swlexp::Swarmlist::serializeData(char elemDelim, char entryDelim) co
         sstrm << '(' <<
                  std::to_string(e.getRobotId())        << elemDelim <<
                  std::to_string(e.getLamport())        << elemDelim <<
-                 std::to_string(e.getTimeToInactive()) << elemDelim <<
+                 std::to_string(e.getTimeToInactive()) <<
                  ')' << entryDelim;
     }
 

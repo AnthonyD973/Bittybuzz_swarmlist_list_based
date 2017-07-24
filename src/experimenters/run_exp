@@ -60,7 +60,7 @@ do
 
                     "submit")
                         experiment_dir="$LSCRATCH/$subdir"
-                        experiment_outdir="$WD/$subdir"
+                        experiment_outdir="$WD"
 
                         # Create ouptut dir and realtime file.
                         mkdir -p "$experiment_outdir"
