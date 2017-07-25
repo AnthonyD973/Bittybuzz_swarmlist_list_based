@@ -24,6 +24,7 @@ swlexp::Swarmlist::Swarmlist(Messenger* msn)
     : m_msn(msn)
     , m_swMsgCb(this)
     , m_shouldRebroadcast(false)
+    , m_msgsTillNoNew(0)
 {
     m_msn->registerCallback(Messenger::MSG_TYPE_SWARM, m_swMsgCb);
 }
@@ -57,6 +58,30 @@ std::string swlexp::Swarmlist::serializeData(char elemDelim, char entryDelim) co
     }
 
     return sstrm.str();
+}
+
+/****************************************/
+/****************************************/
+
+void swlexp::Swarmlist::_init() {
+    m_numActive          = 0;
+    m_next               = 0;
+    m_stepsTillChunk     = STEPS_PER_CHUNK - 1;
+    m_stepsTillTick      = STEPS_PER_TICK  - 1;
+    m_numMsgsTx          = 0;
+    m_numMsgsRx          = 0;
+
+    c_numEntriesPerSwarmMsg =
+        (getPacketSize() - 1) /
+        (sizeof(RobotId) + sizeof(argos::UInt8) + sizeof(Lamport8));
+    
+    m_numRebroadcasts = 0;
+    argos::Real targetBroadcastFailProb = (100.0 - c_targetBroadcastSuccessProb) / 100.0;
+    argos::Real currBroadcastFailProb = 1.0;
+    while (currBroadcastFailProb > targetBroadcastFailProb) {
+        ++m_numRebroadcasts;
+        currBroadcastFailProb *= getPacketDropProb();
+    }
 }
 
 /****************************************/
@@ -196,23 +221,36 @@ void swlexp::Swarmlist::_newNext() {
 /****************************************/
 
 argos::CByteArray swlexp::Swarmlist::_makeNextMessage() {
+    static const argos::UInt8 NUM_MSGS_BETWEEN_NO_NEW = 3;
     argos::CByteArray swarmMsg(getPacketSize());
     swarmMsg[0] = Messenger::MSG_TYPE_SWARM;
 
     argos::UInt16 msgIdx = 0; // Place of the entry in the message.
-    const argos::UInt16 NUM_NEW_ENTRIES_TO_SEND =
-        (m_newData.size() < c_numEntriesPerSwarmMsg) ?
-        (m_newData.size()) :
-        (c_numEntriesPerSwarmMsg);
+    argos::UInt16 numNewEntriesToSend;
+    // Determine how many new entries to send.
+    // If entries do not become inactive, there is no need to
+    // send the info of robots we already broadcast the info of.
+    if (!c_entriesShouldBecomeInactive || m_msgsTillNoNew != 0) {
+        numNewEntriesToSend =
+            (m_newData.size() < c_numEntriesPerSwarmMsg) ?
+            (m_newData.size()) :
+            (c_numEntriesPerSwarmMsg);
+    }
+    else {
+        m_msgsTillNoNew = NUM_MSGS_BETWEEN_NO_NEW;
+        numNewEntriesToSend = 0;
+    }
+    --m_msgsTillNoNew;
 
-    // Send the new entries first.
-    for (argos::UInt16 i = 0; i < NUM_NEW_ENTRIES_TO_SEND; ++i) {
+    // Send new entries
+    for (argos::UInt16 i = 0; i < numNewEntriesToSend; ++i) {
         Entry entry = _getNewNext();
         _newNext();
         writeInPacket(swarmMsg, entry, msgIdx);
     }
 
-    for (argos::UInt16 i = 0; i < c_numEntriesPerSwarmMsg - NUM_NEW_ENTRIES_TO_SEND; ++i) {
+    // Send non-new entries
+    for (argos::UInt16 i = 0; i < c_numEntriesPerSwarmMsg - numNewEntriesToSend; ++i) {
         Entry entry = _getNext();
 
         // Don't send the info of inactive robots.
@@ -253,30 +291,6 @@ void swlexp::Swarmlist::_sendSwarmChunk() {
     for (argos::UInt8 i = 0; i < NUM_MSGS_TX; ++i) {
         // Send a swarm message
         m_msn->sendMsgTx(std::move(_makeNextMessage()));
-    }
-}
-
-/****************************************/
-/****************************************/
-
-void swlexp::Swarmlist::_init() {
-    m_numActive          = 0;
-    m_next               = 0;
-    m_stepsTillChunk     = STEPS_PER_CHUNK - 1;
-    m_stepsTillTick      = STEPS_PER_TICK  - 1;
-    m_numMsgsTx          = 0;
-    m_numMsgsRx          = 0;
-
-    c_numEntriesPerSwarmMsg =
-        (getPacketSize() - 1) /
-        (sizeof(RobotId) + sizeof(argos::UInt8) + sizeof(Lamport8));
-    
-    m_numRebroadcasts = 0;
-    argos::Real targetBroadcastFailProb = (100.0 - c_targetBroadcastSuccessProb) / 100.0;
-    argos::Real currBroadcastFailProb = 1.0;
-    while (currBroadcastFailProb > targetBroadcastFailProb) {
-        ++m_numRebroadcasts;
-        currBroadcastFailProb *= getPacketDropProb();
     }
 }
 

@@ -216,19 +216,6 @@ namespace swlexp {
         // Other functions
 
         /**
-         * Returns a copy of the next entry we will send.
-         * @note This does not take into account whether we have new entries.
-         * @return A copy of the next entry we will send.
-         */
-        Entry _getNext();
-
-        /**
-         * Returns a copy of the next new entry we will send.
-         * @return A copy of the next new entry we will send.
-         */
-        Entry _getNewNext();
-
-        /**
          * Gets an entry of the swarmlist given its robot ID.
          * @throw std::out_of_range The ID is not found.
          * @param[in] robot The robot ID whose data to fetch.
@@ -266,6 +253,19 @@ namespace swlexp {
          * Changes the next new entry to send.
          */
         void _newNext();
+
+        /**
+         * Returns a copy of the next entry we will send.
+         * @note This does not take into account whether we have new entries.
+         * @return A copy of the next entry we will send.
+         */
+        Entry _getNext();
+
+        /**
+         * Returns a copy of the next new entry we will send.
+         * @return A copy of the next new entry we will send.
+         */
+        Entry _getNewNext();
 
         /**
          * Creates a swarm message.
@@ -309,25 +309,26 @@ namespace swlexp {
 
     private:
 
-        RobotId m_id;                    ///< ID of the robot whose swarmlist this is.
-        std::vector<Entry> m_data;       ///< Index => Entry in O(1)
-        std::vector<NewData> m_newData; ///< Data of the new robots.
+        RobotId m_id;                     ///< ID of the robot whose swarmlist this is.
+        std::vector<Entry> m_data;        ///< Index => Entry in O(1)
+        std::vector<NewData> m_newData;   ///< Data of the new robots.
         std::unordered_map<RobotId, argos::UInt32> m_idToIndex; ///< Robot ID => Index in O(1)
 
-        argos::UInt32 m_numActive;       ///< Number of active entries.
-        argos::UInt32 m_next;            ///< The index of the next entry to send via a swarm chunk.
-        argos::UInt32 m_newNext;         ///< The index of the next new entry to send via a swarm chunk when m_newData is not empty.
-        argos::UInt16 m_stepsTillChunk;  ///< Number of control steps until we brodcast the next swarm chunk.
-        argos::UInt32 m_stepsTillTick;   ///< Number of control steps until we perform a swarmlist tick.
+        argos::UInt32 m_numActive;        ///< Number of active entries.
+        argos::UInt32 m_next;             ///< The index of the next entry to send via a swarm chunk.
+        argos::UInt32 m_newNext;          ///< The index of the next new entry to send via a swarm chunk when m_newData is not empty.
+        argos::UInt16 m_stepsTillChunk;   ///< Number of control steps until we brodcast the next swarm chunk.
+        argos::UInt32 m_stepsTillTick;    ///< Number of control steps until we perform a swarmlist tick.
 
-        argos::UInt64 m_numMsgsTx;       ///< Number of swarm messages transmitted since the beginning of the experiment.
-        argos::UInt64 m_numMsgsRx;       ///< Number of swarm messages received since the beginning of the experiment.
+        argos::UInt64 m_numMsgsTx;        ///< Number of swarm messages transmitted since the beginning of the experiment.
+        argos::UInt64 m_numMsgsRx;        ///< Number of swarm messages received since the beginning of the experiment.
 
-        Messenger* m_msn;                ///< Messenger object.
-        SwarmMsgCallback m_swMsgCb;      ///< Callback object.
+        Messenger* m_msn;                 ///< Messenger object.
+        SwarmMsgCallback m_swMsgCb;       ///< Callback object.
 
-        argos::UInt8 m_numRebroadcasts;  ///< Number of times we rebroadcast a new entry.
-        bool m_shouldRebroadcast;        ///< Whether we should rebroadcast new entries.
+        argos::UInt8 m_numRebroadcasts;   ///< Number of times we rebroadcast a new entry.
+        bool m_shouldRebroadcast;         ///< Whether we should rebroadcast new entries.
+        argos::UInt8 m_msgsTillNoNew;     ///< Number of swarm messages until we send a message containing non-new entries, regardless of whether we have new entries.
 
     // ==============================
     // =       STATIC MEMBERS       =
