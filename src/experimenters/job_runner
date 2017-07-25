@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #PBS -N swarmlist
 #PBS -j oe
-#PBS -l walltime=00:30:00
+#PBS -l walltime=00:01:00
 
 #stop on errors
 set -e
