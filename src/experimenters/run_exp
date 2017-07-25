@@ -24,7 +24,7 @@ FINAL_RES_CSV="$WD/res.csv"
 FOOTBOT_CONTROLLER_LIB="$BINARY_DIR/controllers/libFootbotController.so"
 LOOP_FUNCTIONS_LIB="$BINARY_DIR/loops/libexp_loop_func.so"
 NUM_EXPERIMENTS=1
-FOOTBOT_STATUS_LOG_DELAY=1
+FOOTBOT_STATUS_LOG_DELAY=100
 ENTRIES_SHOULD_BECOME_INACTIVE=false
 
 # Set variable experiment params
@@ -60,7 +60,7 @@ do
 
                     "submit")
                         experiment_dir="$LSCRATCH/$subdir"
-                        experiment_outdir="$WD"
+                        experiment_outdir="$WD/$subdir"
 
                         # Create ouptut dir and realtime file.
                         mkdir -p "$experiment_outdir"

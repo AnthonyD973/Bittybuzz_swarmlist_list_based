@@ -69,12 +69,12 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     }
 
     // Open files.
-    m_expFbCsv.open(m_expFbCsvName, std::ios::app);
+    m_expFbCsv.open(m_expFbCsvName, std::ios::trunc);
     if (m_expFbCsv.fail()) {
         THROW_ARGOSEXCEPTION("Could not open CSV file \"" << m_expFbCsvName << "\".");
     }
     if (m_expRealtimeOutputName != "") {
-        m_expRealtimeOutput.open(m_expRealtimeOutputName, std::ios::app);
+        m_expRealtimeOutput.open(m_expRealtimeOutputName, std::ios::trunc);
         if (m_expRealtimeOutput.fail()) {
             THROW_ARGOSEXCEPTION("Could not open realtime CSV file \"" << m_expFbCsvName << "\".");
         }
@@ -82,11 +82,11 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     else {
         argos::LOG << "No realtime file used.\n";
     }
-    m_expRes.open(m_expResName, std::ios::app);
+    m_expRes.open(m_expResName, std::ios::trunc);
     if (m_expRes.fail()) {
         THROW_ARGOSEXCEPTION("Could not open CSV file \"" << m_expResName << "\".");
     }
-    m_expLog.open(m_expLogName, std::ios::app);
+    m_expLog.open(m_expLogName, std::ios::trunc);
     if (m_expLog.fail()) {
         THROW_ARGOSEXCEPTION("Could not open log file \"" << m_expLogName << "\".");
     }

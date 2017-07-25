@@ -49,7 +49,7 @@ argos3 -c "$ARGOS_OUT"
 # Copy generated files
 if [ "$EXPERIMENT_OUTDIR" != "" ]; then
     mkdir -p "$EXPERIMENT_OUTDIR"
-    cp -r "${EXPERIMENT_DIR}" "${EXPERIMENT_OUTDIR}"
+    cp -r "${EXPERIMENT_DIR}" "${EXPERIMENT_OUTDIR}/.."
 fi
 
 # Write experiment results to final result file.
