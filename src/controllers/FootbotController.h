@@ -85,7 +85,7 @@ namespace swlexp {
          * Gets the packet drop probability.
          */
         inline static
-        argos::UInt16 getPacketDropProb() { return c_packetDropProb; }
+        argos::Real getPacketDropProb() { return c_packetDropProb; }
 
         /**
          * Gets the total number of controllers.

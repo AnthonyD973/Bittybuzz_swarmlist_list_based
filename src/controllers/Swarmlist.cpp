@@ -14,7 +14,7 @@ namespace swlexp {
     const argos::UInt8  Swarmlist::c_ROBOT_ID_POS     = 0;
     const argos::UInt8  Swarmlist::c_SWARM_MASK_POS   = 0 + sizeof(RobotId);
     const argos::UInt8  Swarmlist::c_LAMPORT_POS      = 0 + sizeof(RobotId) + sizeof(argos::UInt8);
-    argos::Real         Swarmlist::c_targetBroadcastSuccessProb;
+    argos::Real         Swarmlist::c_targetBroadcastSuccessProb = 55.0;
 }
 
 /****************************************/

@@ -1,5 +1,70 @@
 #!/bin/bash
 
+# ==============================
+# =    FUNCTION DEFINITIONS    =
+# ==============================
+
+function conduct_experiment {
+    subdir="exp_${topology}Topology_${num_robots}Robots_${packet_drop_prob}MsgDropProb/exp${i}"
+
+    # Run experiment
+    case $RUN_OR_SUBMIT in
+
+        "run")
+            experiment_dir="$WD/$subdir"
+            mkdir -p "$experiment_dir"
+            ("$GIT_ROOT/src/experimenters/job_runner" \
+            $i \
+            "$ARGOS_IN" \
+            "$FOOTBOT_CONTROLLER_LIB" \
+            "$LOOP_FUNCTIONS_LIB" \
+            "$experiment_dir" \
+            "" \
+            "" \
+            "$FINAL_RES_CSV" \
+            $FOOTBOT_STATUS_LOG_DELAY \
+            $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE)
+            ;;
+
+        "submit")
+            # Don't send more than 500 jobs at the same time.
+            while [ $(qselect -u $(whoami) | wc -l) -ge 500 ]; do sleep 10; done
+            echo "STARTING: ${i}-th experiment with ${topology}, ${num_robots}, ${packet_drop_prob}."
+
+            experiment_dir="$LSCRATCH/$subdir"
+            experiment_outdir="$WD/$subdir"
+
+            # Create ouptut dir and realtime file.
+            mkdir -p "$experiment_outdir"
+            realtime_output_file="$experiment_outdir/realtime_output.txt"
+            echo "" > "$realtime_output_file"
+
+            # Submit experiment.
+            qsub -F " \
+            $i \
+            \"$ARGOS_IN\" \
+            \"$FOOTBOT_CONTROLLER_LIB\" \
+            \"$LOOP_FUNCTIONS_LIB\" \
+            \"$experiment_dir\" \
+            \"$experiment_outdir\" \
+            \"$realtime_output_file\" \
+            \"$FINAL_RES_CSV\" \
+            $FOOTBOT_STATUS_LOG_DELAY \
+            $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE" \
+            "$GIT_ROOT/src/experimenters/job_runner"
+            ;;
+
+        *)
+            echo "Please specify either \"run\" or \"submit\" as target."
+            exit 1
+
+    esac
+}
+
+# ==============================
+# =           SCRIPT           =
+# ==============================
+
 res1=$(date +%s.%N)
 
 # Get args and set vars
@@ -30,64 +95,14 @@ ENTRIES_SHOULD_BECOME_INACTIVE=false
 # Set variable experiment params
 for topology in line
 do
-    for num_robots in 20 # {10..20..10}
+    for num_robots in 20
     do
-        for packet_drop_prob in 0.00 # 0.25 0.50 0.75
+        for packet_drop_prob in 0.00 0.25 0.50 0.75
         do
             i=1
             while [ $i -le $NUM_EXPERIMENTS ]
             do
-                subdir="exp_${topology}Topology_${num_robots}Robots_${packet_drop_prob}MsgDropProb/exp${i}"
-
-                # Run experiment
-                case $RUN_OR_SUBMIT in
-
-                    "run")
-                        experiment_dir="$WD/$subdir"
-                        mkdir -p "$experiment_dir"
-                        ("$GIT_ROOT/src/experimenters/job_runner" \
-                        $i \
-                        "$ARGOS_IN" \
-                        "$FOOTBOT_CONTROLLER_LIB" \
-                        "$LOOP_FUNCTIONS_LIB" \
-                        "$experiment_dir" \
-                        "" \
-                        "" \
-                        "$FINAL_RES_CSV" \
-                        $FOOTBOT_STATUS_LOG_DELAY \
-                        $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE)
-                        ;;
-
-                    "submit")
-                        experiment_dir="$LSCRATCH/$subdir"
-                        experiment_outdir="$WD/$subdir"
-
-                        # Create ouptut dir and realtime file.
-                        mkdir -p "$experiment_outdir"
-                        realtime_output_file="$experiment_outdir/realtime_output.txt"
-                        echo "" > "$realtime_output_file"
-
-                        # Submit experiment.
-                        qsub -F " \
-                        $i \
-                        \"$ARGOS_IN\" \
-                        \"$FOOTBOT_CONTROLLER_LIB\" \
-                        \"$LOOP_FUNCTIONS_LIB\" \
-                        \"$experiment_dir\" \
-                        \"$experiment_outdir\" \
-                        \"$realtime_output_file\" \
-                        \"$FINAL_RES_CSV\" \
-                        $FOOTBOT_STATUS_LOG_DELAY \
-                        $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE" \
-                        "$GIT_ROOT/src/experimenters/job_runner"
-                        ;;
-
-                    *)
-                        echo "Please specify either \"run\" or \"submit\" as target."
-                        exit 1
-
-                esac
-
+                conduct_experiment
                 i=$(($i+1))
             done
         done

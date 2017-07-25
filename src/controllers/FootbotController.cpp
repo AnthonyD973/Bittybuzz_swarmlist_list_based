@@ -69,11 +69,12 @@ void swlexp::FootbotController::Init(argos::TConfigurationNode& t_node) {
     argos::TConfigurationNode footbot_controller = argos::GetNode(controllers,        "footbot_controller");
     argos::TConfigurationNode sensors            = argos::GetNode(footbot_controller, "sensors");
     argos::TConfigurationNode rab                = argos::GetNode(sensors,            "range_and_bearing");
-    argos::GetNodeAttributeOrDefault(rab, "packet_drop_prob", c_packetDropProb, 0.0);
+    argos::GetNodeAttribute(rab, "packet_drop_prob", c_packetDropProb);
 
     argos::GetNodeAttribute(t_node, "packet_size", c_packetSize);
     m_swarmlist.setSwarmMask(m_localSwarmMask);
     m_swarmlist._init();
+    m_swarmlist.setShouldRebroadcast(true);
 }
 
 /****************************************/

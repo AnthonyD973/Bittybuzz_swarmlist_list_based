@@ -343,7 +343,7 @@ namespace swlexp {
         static const argos::UInt8 c_ROBOT_ID_POS;        ///< Offset, inside a swarmlist entry, of the robot's ID.
         static const argos::UInt8 c_SWARM_MASK_POS;      ///< Offset, inside a swarmlist entry, of the swarm mask.
         static const argos::UInt8 c_LAMPORT_POS;         ///< Offset, inside a swarmlist entry, of the lamport clock.
-        static argos::Real c_targetBroadcastSuccessProb; ///< Desired probability of success of broadcasting new entries.
+        static argos::Real c_targetBroadcastSuccessProb; ///< Desired probability (in percent) of success of broadcasting new entries.
 
     };
 
