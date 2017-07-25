@@ -24,7 +24,7 @@ FINAL_RES_CSV="$WD/res.csv"
 FOOTBOT_CONTROLLER_LIB="$BINARY_DIR/controllers/libFootbotController.so"
 LOOP_FUNCTIONS_LIB="$BINARY_DIR/loops/libexp_loop_func.so"
 NUM_EXPERIMENTS=1
-FOOTBOT_STATUS_LOG_DELAY=100
+FOOTBOT_STATUS_LOG_DELAY=500
 ENTRIES_SHOULD_BECOME_INACTIVE=false
 
 # Set variable experiment params

@@ -112,6 +112,7 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     // Setup realtime output.
     m_timeSinceLastRealtimeOutput = std::time(NULL);
     swlexp::FootbotController::writeStatusLogs(m_expRealtimeOutput, false);
+    m_expRealtimeOutput.flush();
 
     // Write header in the status logs file and perform the first status log.
     swlexp::FootbotController::writeStatusLogHeader(m_expFbCsv);
