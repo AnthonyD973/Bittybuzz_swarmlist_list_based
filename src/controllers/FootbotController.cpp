@@ -7,7 +7,8 @@
 
 namespace swlexp {
     std::unordered_set<FootbotController*> FootbotController::c_controllers;
-    argos::UInt16       FootbotController::c_packetSize;
+    argos::UInt16 FootbotController::c_packetSize;
+    argos::Real   FootbotController::c_packetDropProb;
 }
 
 /****************************************/
@@ -15,6 +16,13 @@ namespace swlexp {
 
 argos::UInt16 swlexp::getPacketSize() {
     return swlexp::FootbotController::getPacketSize();
+}
+
+/****************************************/
+/****************************************/
+
+argos::Real swlexp::getPacketDropProb() {
+    return swlexp::FootbotController::getPacketDropProb();
 }
 
 /****************************************/
@@ -55,6 +63,13 @@ void swlexp::FootbotController::Init(argos::TConfigurationNode& t_node) {
     bool entriesShouldBecomeInactive;
     argos::GetNodeAttribute(t_node, "entries_should_become_inactive", entriesShouldBecomeInactive);
     swlexp::Swarmlist::setEntriesShouldBecomeInactive(entriesShouldBecomeInactive);
+
+    // Get packet drop probability.
+    argos::TConfigurationNode controllers        = argos::GetNode(argos::CSimulator::GetInstance().GetConfigurationRoot(), "controllers");
+    argos::TConfigurationNode footbot_controller = argos::GetNode(controllers,        "footbot_controller");
+    argos::TConfigurationNode sensors            = argos::GetNode(footbot_controller, "sensors");
+    argos::TConfigurationNode rab                = argos::GetNode(sensors,            "range_and_bearing");
+    argos::GetNodeAttributeOrDefault(rab, "packet_drop_prob", c_packetDropProb, 0.0);
 
     argos::GetNodeAttribute(t_node, "packet_size", c_packetSize);
     m_swarmlist.setSwarmMask(m_localSwarmMask);
@@ -126,10 +141,6 @@ void swlexp::FootbotController::Destroy() {
 /****************************************/
 
 std::string swlexp::FootbotController::getCsvStatusLog(bool sideEffect) {
-    argos::UInt32 timeAtLastLog = (argos::UInt32)-1;
-    argos::UInt64 numMsgsTxAtLastLog = 0;
-    argos::UInt64 numMsgsRxAtLastLog = 0;
-
     std::ostringstream logData;
 
     const argos::UInt32 TIME = argos::CSimulator::GetInstance().
@@ -137,14 +148,14 @@ std::string swlexp::FootbotController::getCsvStatusLog(bool sideEffect) {
 
     argos::UInt64 NUM_MSGS_TX = m_swarmlist.getNumMsgsTx();
     argos::UInt64 NUM_MSGS_RX = m_swarmlist.getNumMsgsRx();
-    argos::UInt64 NUM_MSGS_TX_SINCE_LOG = NUM_MSGS_TX - numMsgsTxAtLastLog;
-    argos::UInt64 NUM_MSGS_RX_SINCE_LOG = NUM_MSGS_RX - numMsgsRxAtLastLog;
+    argos::UInt64 NUM_MSGS_TX_SINCE_LOG = NUM_MSGS_TX - m_numMsgsTxAtLastLog;
+    argos::UInt64 NUM_MSGS_RX_SINCE_LOG = NUM_MSGS_RX - m_numMsgsTxAtLastLog;
     argos::Real bwTx;
     argos::Real bwRx;
 
-    if (TIME != timeAtLastLog) {
-        bwTx = (argos::Real)(NUM_MSGS_TX_SINCE_LOG) / (TIME - timeAtLastLog);
-        bwRx = (argos::Real)(NUM_MSGS_RX_SINCE_LOG) / (TIME - timeAtLastLog);
+    if (TIME != m_timeAtLastLog) {
+        bwTx = (argos::Real)(NUM_MSGS_TX_SINCE_LOG) / (TIME - m_timeAtLastLog);
+        bwRx = (argos::Real)(NUM_MSGS_RX_SINCE_LOG) / (TIME - m_timeAtLastLog);
     }
     else {
         bwTx = 0;
@@ -162,9 +173,9 @@ std::string swlexp::FootbotController::getCsvStatusLog(bool sideEffect) {
                '"' << m_swarmlist.serializeData(c_CSV_DELIM, ';') << "\"\n";
 
     if (sideEffect) {
-        numMsgsTxAtLastLog = NUM_MSGS_TX;
-        numMsgsRxAtLastLog = NUM_MSGS_RX;
-        timeAtLastLog      = TIME;
+        m_numMsgsTxAtLastLog = NUM_MSGS_TX;
+        m_numMsgsRxAtLastLog = NUM_MSGS_RX;
+        m_timeAtLastLog      = TIME;
     }
 
     return std::move(logData.str());
@@ -189,14 +200,14 @@ argos::UInt64 swlexp::FootbotController::getTotalNumMessagesRx() {
 
 void swlexp::FootbotController::writeStatusLogHeader(std::ostream& o) {
     static const std::string STATUS_LOG_HEADER = std::string() +
-        "ID"                                   + c_CSV_DELIM +
-        "Time (timesteps)"                     + c_CSV_DELIM +
-        "Number of messages sent"              + c_CSV_DELIM +
-        "Avg. sent bandwidth (B/timestep)"     + c_CSV_DELIM +
-        "Number of messages received"          + c_CSV_DELIM +
-        "Avg. received bandwidth (B/timestep)" + c_CSV_DELIM +
-        "Swarmlist size"                       + c_CSV_DELIM +
-        "Swarmlist number of active entries"   + c_CSV_DELIM +
+        "ID"                             + c_CSV_DELIM +
+        "Time (timesteps)"               + c_CSV_DELIM +
+        "Num msgs tx"                    + c_CSV_DELIM +
+        "Avg. tx bandwidth (B/timestep)" + c_CSV_DELIM +
+        "Num msgs rx"                    + c_CSV_DELIM +
+        "Avg. rx bandwidth (B/timestep)" + c_CSV_DELIM +
+        "Swl size"                       + c_CSV_DELIM +
+        "Swl num active"                 + c_CSV_DELIM +
         "\"Swarmlist data (robot ID,lamport,ticks to inactive)\"\n";
     o << STATUS_LOG_HEADER;
 }

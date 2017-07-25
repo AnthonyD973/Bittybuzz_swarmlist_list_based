@@ -14,6 +14,7 @@ namespace swlexp {
     const argos::UInt8  Swarmlist::c_ROBOT_ID_POS     = 0;
     const argos::UInt8  Swarmlist::c_SWARM_MASK_POS   = 0 + sizeof(RobotId);
     const argos::UInt8  Swarmlist::c_LAMPORT_POS      = 0 + sizeof(RobotId) + sizeof(argos::UInt8);
+    argos::Real         Swarmlist::c_targetBroadcastSuccessProb;
 }
 
 /****************************************/
@@ -22,6 +23,7 @@ namespace swlexp {
 swlexp::Swarmlist::Swarmlist(Messenger* msn)
     : m_msn(msn)
     , m_swMsgCb(this)
+    , m_shouldRebroadcast(false)
 {
     m_msn->registerCallback(Messenger::MSG_TYPE_SWARM, m_swMsgCb);
 }
@@ -111,7 +113,11 @@ void swlexp::Swarmlist::_update(RobotId robot,
         if (m_newData.empty()) {
             m_newNext = 0;
         }
-        m_newData.push_back(swlexp::Swarmlist::Entry(robot, swarmMask, lamport));
+        swlexp::Swarmlist::NewData nd = {
+            .entryIdx = (argos::UInt32)m_data.size(),
+            .numRebroadcastsLeft = m_numRebroadcasts
+        };
+        m_newData.push_back(nd);
     }
 
     if (shouldUpdate) {
@@ -165,16 +171,68 @@ void swlexp::Swarmlist::_set(const swlexp::Swarmlist::Entry& entry) {
 /****************************************/
 
 void swlexp::Swarmlist::_next() {
-    if (m_newData.empty()) {
-        ++m_next;
-        if (m_next >= m_data.size())
-            m_next = 0;
+    ++m_next;
+    if (m_next >= m_data.size())
+        m_next = 0;
+}
+
+/****************************************/
+/****************************************/
+
+void swlexp::Swarmlist::_newNext() {
+    if (!m_shouldRebroadcast || m_newData[m_newNext].numRebroadcastsLeft == 0) {
+        // Entry no longer new.
+        m_newData[m_newNext] = m_newData.back();
+        m_newData.pop_back();
     }
     else {
         ++m_newNext;
         if (m_newNext >= m_newData.size())
             m_newNext = 0;
     }
+}
+
+/****************************************/
+/****************************************/
+
+argos::CByteArray swlexp::Swarmlist::_makeNextMessage() {
+    argos::CByteArray swarmMsg(getPacketSize());
+    swarmMsg[0] = Messenger::MSG_TYPE_SWARM;
+
+    argos::UInt16 msgIdx = 0; // Place of the entry in the message.
+    const argos::UInt16 NUM_NEW_ENTRIES_TO_SEND =
+        (m_newData.size() < c_numEntriesPerSwarmMsg) ?
+        (m_newData.size()) :
+        (c_numEntriesPerSwarmMsg);
+
+    // Send the new entries first.
+    for (argos::UInt16 i = 0; i < NUM_NEW_ENTRIES_TO_SEND; ++i) {
+        Entry entry = _getNewNext();
+        _newNext();
+        writeInPacket(swarmMsg, entry, msgIdx);
+    }
+
+    for (argos::UInt16 i = 0; i < c_numEntriesPerSwarmMsg - NUM_NEW_ENTRIES_TO_SEND; ++i) {
+        Entry entry = _getNext();
+
+        // Don't send the info of inactive robots.
+        // At worst, only the robot's own data is active,
+        // so we don't risk falling in infinite loops.
+        while (!entry.isActive(m_id)) {
+            _next();
+            entry = _getNext();
+        }
+
+        // Go to next robot. If we don't have enough entries, we'll
+        // send the same entry several times, but that's OK, since
+        // in most practical cases we have the information of many robots.
+        // Besides, if we have few entries then cost of handling the same
+        // entry several times is very low.
+        _next();
+
+        writeInPacket(swarmMsg, entry, msgIdx);
+    }
+    return std::move(swarmMsg);
 }
 
 /****************************************/
@@ -194,33 +252,7 @@ void swlexp::Swarmlist::_sendSwarmChunk() {
 
     for (argos::UInt8 i = 0; i < NUM_MSGS_TX; ++i) {
         // Send a swarm message
-        argos::CByteArray msgTx(getPacketSize());
-        msgTx[0] = Messenger::MSG_TYPE_SWARM;
-        for (argos::UInt8 j = 0; j < c_numEntriesPerSwarmMsg; ++j) {
-            swlexp::Swarmlist::Entry entry = _getNext(m_id);
-
-            // Don't send the info of inactive robots.
-            // At worst, only the robot's own data is active,
-            // so we don't risk falling in infinite loops.
-            while (!entry.isActive(m_id)) {
-                _next();
-                entry = _getNext(m_id);
-            }
-
-            // Append the next entry's data
-            Messenger::MsgType* msgTxData = (Messenger::MsgType*)(msgTx.ToCArray());
-            *(RobotId*)     &msgTxData[1+c_SWARM_ENTRY_SIZE*j+c_ROBOT_ID_POS]   = entry.getRobotId();
-            *(argos::UInt8*)&msgTxData[1+c_SWARM_ENTRY_SIZE*j+c_SWARM_MASK_POS] = entry.getSwarmMask();
-            *(Lamport8*)    &msgTxData[1+c_SWARM_ENTRY_SIZE*j+c_LAMPORT_POS]    = entry.getLamport();
-
-            // Go to next robot (if we don't have enough entries, we'll
-            // send the same entry several times, but that's OK, since
-            // in most practical cases we have the information of many robots).
-            // Besides, if we have few entries then cost of handling the same
-            // entry several times is very low.
-            _next();
-        }
-        m_msn->sendMsgTx(msgTx);
+        m_msn->sendMsgTx(std::move(_makeNextMessage()));
     }
 }
 
@@ -238,23 +270,38 @@ void swlexp::Swarmlist::_init() {
     c_numEntriesPerSwarmMsg =
         (getPacketSize() - 1) /
         (sizeof(RobotId) + sizeof(argos::UInt8) + sizeof(Lamport8));
+    
+    m_numRebroadcasts = 0;
+    argos::Real targetBroadcastFailProb = (100.0 - c_targetBroadcastSuccessProb) / 100.0;
+    argos::Real currBroadcastFailProb = 1.0;
+    while (currBroadcastFailProb > targetBroadcastFailProb) {
+        ++m_numRebroadcasts;
+        currBroadcastFailProb *= getPacketDropProb();
+    }
 }
 
 /****************************************/
 /****************************************/
 
-swlexp::Swarmlist::Entry swlexp::Swarmlist::_getNext(RobotId id) {
-    Entry* e;
-    if (m_newData.empty()) {
-        e = &m_data[m_next];
-    }
-    else {
-        e = &m_newData[m_newNext];
-    }
+swlexp::Swarmlist::Entry swlexp::Swarmlist::_getNext() {
+    Entry* e = &m_data[m_next];
     // Increment our own Lamport clock so that others are aware
     // that we still exist.
-    if (e->getRobotId() == id)
+    if (e->getRobotId() == m_id)
         e->incrementLamport();
+    return *e;
+}
+
+/****************************************/
+/****************************************/
+
+swlexp::Swarmlist::Entry swlexp::Swarmlist::_getNewNext() {
+    Entry* e = &m_data[m_newData[m_newNext].entryIdx];
+    // Increment our own Lamport clock so that others are aware
+    // that we still exist.
+    if (e->getRobotId() == m_id)
+        e->incrementLamport();
+    --m_newData[m_newNext].numRebroadcastsLeft;
     return *e;
 }
 
@@ -293,4 +340,21 @@ void swlexp::Swarmlist::SwarmMsgCallback::operator()(
         }
     }
     m_swarmlist->m_numMsgsRx += 1;
+}
+
+/****************************************/
+/****************************************/
+
+// ==============================
+// =      GLOBAL FUNCTIONS      =
+// ==============================
+
+void swlexp::writeInPacket(argos::CByteArray& packet,
+                           const swlexp::Swarmlist::Entry& entry,
+                           argos::UInt16 idx) {
+    argos::UInt8* data = packet.ToCArray();
+    const argos::UInt16 ENTRY_POS = 1 + Swarmlist::c_SWARM_ENTRY_SIZE * idx;
+    *(RobotId*)     &data[ENTRY_POS+Swarmlist::c_ROBOT_ID_POS]   = entry.getRobotId();
+    *(argos::UInt8*)&data[ENTRY_POS+Swarmlist::c_SWARM_MASK_POS] = entry.getSwarmMask();
+    *(Lamport8*)    &data[ENTRY_POS+Swarmlist::c_LAMPORT_POS]    = entry.getLamport();
 }

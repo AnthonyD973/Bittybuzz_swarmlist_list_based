@@ -109,13 +109,13 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
                   "--------------------------------------\n";
     m_expLog.flush();
 
-    // Write header in the status logs file and perform the first status log.
-    swlexp::FootbotController::writeStatusLogHeader(m_expFbCsv);
-    swlexp::FootbotController::writeStatusLogs(m_expFbCsv);
-
     // Setup realtime output.
     m_timeSinceLastRealtimeOutput = std::time(NULL);
-    swlexp::FootbotController::writeStatusLogs(m_expRealtimeOutput);
+    swlexp::FootbotController::writeStatusLogs(m_expRealtimeOutput, false);
+
+    // Write header in the status logs file and perform the first status log.
+    swlexp::FootbotController::writeStatusLogHeader(m_expFbCsv);
+    swlexp::FootbotController::writeStatusLogs(m_expFbCsv, true);
 }
 
 /****************************************/
@@ -133,13 +133,6 @@ void swlexp::ExpLoopFunc::Destroy() {
 void swlexp::ExpLoopFunc::PostStep() {
     static argos::UInt32 callsTillStatusLog = m_expStatusLogDelay - 1;
 
-    if (callsTillStatusLog == 0) {
-        callsTillStatusLog = m_expStatusLogDelay;
-        swlexp::FootbotController::writeStatusLogs(m_expFbCsv);
-    }
-
-    --callsTillStatusLog;
-
     // Write to realtime status log every 5 minutes.
     static const argos::UInt32 DELAY_FOR_REALTIME_LOG = 300;
     std::time_t time = std::time(NULL);
@@ -148,6 +141,13 @@ void swlexp::ExpLoopFunc::PostStep() {
         swlexp::FootbotController::writeStatusLogs(m_expRealtimeOutput, false);
         m_expRealtimeOutput.flush();
     }
+
+    if (callsTillStatusLog == 0) {
+        callsTillStatusLog = m_expStatusLogDelay;
+        swlexp::FootbotController::writeStatusLogs(m_expFbCsv, true);
+    }
+
+    --callsTillStatusLog;
 }
 
 /****************************************/
@@ -499,7 +499,7 @@ void swlexp::ExpLoopFunc::_finishExperiment(swlexp::ExpLoopFunc::ExitCode exitCo
                     "\n";
         m_expLog.flush();
 
-        swlexp::FootbotController::writeStatusLogs(m_expFbCsv);
+        swlexp::FootbotController::writeStatusLogs(m_expFbCsv, true);
         m_expFbCsv.flush();
 
         argos::LOG << "Experiment finished normally in " << GetSpace().GetSimulationClock() <<

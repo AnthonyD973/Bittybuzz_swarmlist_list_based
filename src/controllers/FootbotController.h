@@ -82,6 +82,12 @@ namespace swlexp {
         argos::UInt16 getPacketSize() { return c_packetSize; }
 
         /**
+         * Gets the packet drop probability.
+         */
+        inline static
+        argos::UInt16 getPacketDropProb() { return c_packetDropProb; }
+
+        /**
          * Gets the total number of controllers.
          */
         static
@@ -103,7 +109,7 @@ namespace swlexp {
          * the time at which we last called it.
          */
         inline static
-        void writeStatusLogs(std::ostream& o, bool sideEffect = true) {
+        void writeStatusLogs(std::ostream& o, bool sideEffect) {
             for (FootbotController* controller : c_controllers)
                 o << controller->getCsvStatusLog(sideEffect);
         }
@@ -141,7 +147,9 @@ namespace swlexp {
         argos::UInt16 m_stepsTillTick;       ///< Number of control steps until a swarmlist tick is sent.
         argos::UInt16 m_stepsTillNextChunk;  ///< Number of control steps until a swarm chunk is triggered.
 
-        argos::UInt32 m_timeAtLastLog;       ///< Simulation time at the last status log.
+        argos::UInt32 m_timeAtLastLog = (argos::UInt32)-1; ///< Simulation time at the last status log.
+        argos::UInt64 m_numMsgsTxAtLastLog = 0; ///< Number of sent messages at the last status log.
+        argos::UInt64 m_numMsgsRxAtLastLog = 0; ///< Number of receieved messages at the last status log.
 
 
         // Sensors/Actuators
@@ -154,11 +162,12 @@ namespace swlexp {
 
     private:
 
-        static const char c_CSV_DELIM = ',';           ///< Delimiter between two CSV values.
+        static const char c_CSV_DELIM = ',';   ///< Delimiter between two CSV values.
 
         static std::unordered_set<FootbotController*> c_controllers; ///< Existing controllers.
 
-        static argos::UInt16 c_packetSize;             ///< Size of a message.
+        static argos::UInt16 c_packetSize;     ///< Size of a message.
+        static argos::Real   c_packetDropProb; ///< Probability of occurrence of a packet drop.
     };
 
 }

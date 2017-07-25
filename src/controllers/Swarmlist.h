@@ -25,6 +25,12 @@ namespace swlexp {
         friend class FootbotController;
         friend class SwarmMsgCallback;
 
+    public:
+        class Entry;
+        friend void writeInPacket(argos::CByteArray& packet,
+                                  const Swarmlist::Entry& entry,
+                                  argos::UInt16 idx);
+
     // ==============================
     // =       NESTED SYMBOLS       =
     // ==============================
@@ -103,6 +109,14 @@ namespace swlexp {
             Swarmlist* m_swarmlist;
         };
 
+
+    private:
+
+        struct NewData {
+            argos::UInt32 entryIdx; ///< Index inside the m_data vector.
+            argos::UInt8 numRebroadcastsLeft;
+        };
+
     // ==============================
     // =          METHODS           =
     // ==============================
@@ -114,11 +128,21 @@ namespace swlexp {
         ~Swarmlist();
 
         /**
-         * Sets which robot owns this swarmlist.
+         * Sets which robot owns this swarmlist, and adds to the swarmlist
+         * an entry for the owner robot's swarmlist.
          * @param[in] id The robot owning this swarmlist.
          */
         inline
         void setOwnerId(RobotId id) { m_id = id; _update(m_id, 0, 0); }
+
+        /**
+         * Sets whether we should rebroadcast new entries several times.
+         * @param[in] shouldRebroadcast Whether we should rebroadcast new
+         * entries several times.
+         */
+        inline
+        void setShouldRebroadcast(bool shouldRebroadcast)
+        { m_shouldRebroadcast = shouldRebroadcast; }
 
         void setSwarmMask(argos::UInt8 swarmMask);
 
@@ -193,10 +217,16 @@ namespace swlexp {
 
         /**
          * Returns a copy of the next entry we will send.
-         * This takes into account if we have new entries.
+         * @note This does not take into account whether we have new entries.
          * @return A copy of the next entry we will send.
          */
-        Entry _getNext(RobotId id);
+        Entry _getNext();
+
+        /**
+         * Returns a copy of the next new entry we will send.
+         * @return A copy of the next new entry we will send.
+         */
+        Entry _getNewNext();
 
         /**
          * Gets an entry of the swarmlist given its robot ID.
@@ -227,10 +257,21 @@ namespace swlexp {
         void _tick();
 
         /**
-         * Changes the next robot whose data to send.
-         * @note This takes into account if we have new entries.
+         * Changes the next entry to send.
+         * @note This does not take into account whether we have new entries.
          */
         void _next();
+
+        /**
+         * Changes the next new entry to send.
+         */
+        void _newNext();
+
+        /**
+         * Creates a swarm message.
+         * @return The created swarm message.
+         */
+        argos::CByteArray _makeNextMessage();
 
         /**
          * Sends a set of swarm messages.
@@ -268,22 +309,25 @@ namespace swlexp {
 
     private:
 
-        RobotId m_id;                   ///< ID of the robot whose swarmlist this is.
-        std::vector<Entry> m_data;      ///< Index => Entry in O(1)
-        std::vector<Entry> m_newData;   ///< Index => Entry in O(1) ; data of the new robots.
+        RobotId m_id;                    ///< ID of the robot whose swarmlist this is.
+        std::vector<Entry> m_data;       ///< Index => Entry in O(1)
+        std::vector<NewData> m_newData; ///< Data of the new robots.
         std::unordered_map<RobotId, argos::UInt32> m_idToIndex; ///< Robot ID => Index in O(1)
 
-        argos::UInt32 m_numActive;      ///< Number of active entries.
-        argos::UInt32 m_next;           ///< The index of the next entry to send via a swarm chunk.
-        argos::UInt32 m_newNext;        ///< The index of the next new entry to send via a swarm chunk when m_newData is not empty.
-        argos::UInt16 m_stepsTillChunk; ///< Number of control steps until we brodcast the next swarm chunk.
-        argos::UInt32 m_stepsTillTick;  ///< Number of control steps until we perform a swarmlist tick.
+        argos::UInt32 m_numActive;       ///< Number of active entries.
+        argos::UInt32 m_next;            ///< The index of the next entry to send via a swarm chunk.
+        argos::UInt32 m_newNext;         ///< The index of the next new entry to send via a swarm chunk when m_newData is not empty.
+        argos::UInt16 m_stepsTillChunk;  ///< Number of control steps until we brodcast the next swarm chunk.
+        argos::UInt32 m_stepsTillTick;   ///< Number of control steps until we perform a swarmlist tick.
 
-        argos::UInt64 m_numMsgsTx;      ///< Number of swarm messages transmitted since the beginning of the experiment.
-        argos::UInt64 m_numMsgsRx;      ///< Number of swarm messages received since the beginning of the experiment.
+        argos::UInt64 m_numMsgsTx;       ///< Number of swarm messages transmitted since the beginning of the experiment.
+        argos::UInt64 m_numMsgsRx;       ///< Number of swarm messages received since the beginning of the experiment.
 
-        Messenger* m_msn;               ///< Messenger object.
-        SwarmMsgCallback m_swMsgCb;     ///< Callback object.
+        Messenger* m_msn;                ///< Messenger object.
+        SwarmMsgCallback m_swMsgCb;      ///< Callback object.
+
+        argos::UInt8 m_numRebroadcasts;  ///< Number of times we rebroadcast a new entry.
+        bool m_shouldRebroadcast;        ///< Whether we should rebroadcast new entries.
 
     // ==============================
     // =       STATIC MEMBERS       =
@@ -294,13 +338,19 @@ namespace swlexp {
         static bool c_entriesShouldBecomeInactive; ///< Whether existing entrie should become inactive after a while.
         static argos::UInt64 c_totalNumActive;     ///< The sum, over all robots, of the number of active entries.
 
-        static argos::UInt16 c_numEntriesPerSwarmMsg;  ///< The number of data entries we transmit about other robots per packet.
-        static const argos::UInt16 c_SWARM_ENTRY_SIZE; ///< Size of a single swarmlist entry in a message.
-        static const argos::UInt8 c_ROBOT_ID_POS;      ///< Offset, inside a swarmlist entry, of the robot's ID.
-        static const argos::UInt8 c_SWARM_MASK_POS;    ///< Offset, inside a swarmlist entry, of the swarm mask.
-        static const argos::UInt8 c_LAMPORT_POS;       ///< Offset, inside a swarmlist entry, of the lamport clock.
+        static argos::UInt16 c_numEntriesPerSwarmMsg;    ///< The number of data entries we transmit about other robots per packet.
+        static const argos::UInt16 c_SWARM_ENTRY_SIZE;   ///< Size of a single swarmlist entry in a message.
+        static const argos::UInt8 c_ROBOT_ID_POS;        ///< Offset, inside a swarmlist entry, of the robot's ID.
+        static const argos::UInt8 c_SWARM_MASK_POS;      ///< Offset, inside a swarmlist entry, of the swarm mask.
+        static const argos::UInt8 c_LAMPORT_POS;         ///< Offset, inside a swarmlist entry, of the lamport clock.
+        static argos::Real c_targetBroadcastSuccessProb; ///< Desired probability of success of broadcasting new entries.
 
     };
+
+    void writeInPacket(argos::CByteArray& packet,
+                       const Swarmlist::Entry& entry,
+                       argos::UInt16 idx);
+
 }
 
 #endif // !SWARMLIST_H

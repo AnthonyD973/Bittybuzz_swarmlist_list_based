@@ -98,9 +98,14 @@ namespace swlexp {
     // ==============================
 
     /**
-     * Returns the size of a packet.
+     * Returns the size of a packet (in bytes).
      */
     argos::UInt16 getPacketSize();
+    
+    /**
+     * Returns the probability (between 0.0 and 1.0) of packet drop.
+     */
+    argos::Real getPacketDropProb();
 
 }
 
