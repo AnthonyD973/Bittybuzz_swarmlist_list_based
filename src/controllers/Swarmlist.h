@@ -127,13 +127,6 @@ namespace swlexp {
 
         ~Swarmlist();
 
-        /**
-         * Sets which robot owns this swarmlist, and adds to the swarmlist
-         * an entry for the owner robot's swarmlist.
-         * @param[in] id The robot owning this swarmlist.
-         */
-        inline
-        void setOwnerId(RobotId id) { m_id = id; _update(m_id, 0, 0); }
 
         /**
          * Sets whether we should rebroadcast new entries several times.
@@ -193,7 +186,7 @@ namespace swlexp {
         /**
          * Initializes the swarmlist.
          */
-        void _init();
+        void _init(RobotId id);
 
         /**
          * Function that should be called exactly once every timestep.

@@ -40,7 +40,7 @@ swlexp::Swarmlist::~Swarmlist() {
 /****************************************/
 
 void swlexp::Swarmlist::setSwarmMask(argos::UInt8 swarmMask) {
-    m_data[m_idToIndex.at(m_id)].setSwarmMask(swarmMask);
+    m_data[m_idToIndex[m_id]].setSwarmMask(swarmMask);
 }
 
 /****************************************/
@@ -63,7 +63,7 @@ std::string swlexp::Swarmlist::serializeData(char elemDelim, char entryDelim) co
 /****************************************/
 /****************************************/
 
-void swlexp::Swarmlist::_init() {
+void swlexp::Swarmlist::_init(RobotId id) {
     m_numActive          = 0;
     m_next               = 0;
     m_stepsTillChunk     = STEPS_PER_CHUNK - 1;
@@ -82,6 +82,9 @@ void swlexp::Swarmlist::_init() {
         ++m_numRebroadcasts;
         currBroadcastFailProb *= getPacketDropProb();
     }
+
+    m_id = id;
+    _update(m_id, 0, 0);
 }
 
 /****************************************/
@@ -112,7 +115,6 @@ void swlexp::Swarmlist::_update(RobotId robot,
     if (existed) {
         // Yes.
          swlexp::Lamport8 oldLamport = existingEntry->getLamport();
-
         // Is entry active?
         if (existingEntry->isActive(m_id)) {
             // Yes ; use circular lamport clock model to determine
@@ -189,31 +191,6 @@ void swlexp::Swarmlist::_set(const swlexp::Swarmlist::Entry& entry) {
         // Throwed an exception ; entry doesn't exist yet.
         m_data.push_back(entry);
         m_idToIndex[entry.getRobotId()] = (argos::UInt32)m_data.size() - 1;
-    }
-}
-
-/****************************************/
-/****************************************/
-
-void swlexp::Swarmlist::_next() {
-    ++m_next;
-    if (m_next >= m_data.size())
-        m_next = 0;
-}
-
-/****************************************/
-/****************************************/
-
-void swlexp::Swarmlist::_newNext() {
-    if (!m_shouldRebroadcast || m_newData[m_newNext].numRebroadcastsLeft == 0) {
-        // Entry no longer new.
-        m_newData[m_newNext] = m_newData.back();
-        m_newData.pop_back();
-    }
-    else {
-        ++m_newNext;
-        if (m_newNext >= m_newData.size())
-            m_newNext = 0;
     }
 }
 
@@ -297,6 +274,24 @@ void swlexp::Swarmlist::_sendSwarmChunk() {
 /****************************************/
 /****************************************/
 
+void swlexp::Swarmlist::_next() {
+    ++m_next;
+    if (m_next >= m_data.size())
+        m_next = 0;
+}
+
+/****************************************/
+/****************************************/
+
+void swlexp::Swarmlist::_newNext() {
+    ++m_newNext;
+    if (m_newNext >= m_newData.size())
+        m_newNext = 0;
+}
+
+/****************************************/
+/****************************************/
+
 swlexp::Swarmlist::Entry swlexp::Swarmlist::_getNext() {
     Entry* e = &m_data[m_next];
     // Increment our own Lamport clock so that others are aware
@@ -313,9 +308,19 @@ swlexp::Swarmlist::Entry swlexp::Swarmlist::_getNewNext() {
     Entry* e = &m_data[m_newData[m_newNext].entryIdx];
     // Increment our own Lamport clock so that others are aware
     // that we still exist.
-    if (e->getRobotId() == m_id)
+    if (e->getRobotId() == m_id) {
         e->incrementLamport();
+    }
+
+    // Do not consider the entry to be new if we will not rebroadcast it.
     --m_newData[m_newNext].numRebroadcastsLeft;
+    if (!m_shouldRebroadcast || m_newData[m_newNext].numRebroadcastsLeft == 0) {
+        // Entry no longer new.
+        m_newData[m_newNext] = m_newData.back();
+        m_newData.pop_back();
+
+        --m_newNext;
+    }
     return *e;
 }
 

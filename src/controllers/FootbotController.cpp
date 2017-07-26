@@ -46,9 +46,9 @@ swlexp::FootbotController::~FootbotController() {
 /****************************************/
 
 void swlexp::FootbotController::Init(argos::TConfigurationNode& t_node) {
+    // Set numeric ID.
     std::string idStr = GetId().substr(std::string("fb").size());
     m_id = std::stoi(idStr);
-    m_swarmlist.setOwnerId(m_id);
 
     // Initialize stuff
     m_localSwarmMask = 0x01;
@@ -72,8 +72,8 @@ void swlexp::FootbotController::Init(argos::TConfigurationNode& t_node) {
     argos::GetNodeAttribute(rab, "packet_drop_prob", c_packetDropProb);
 
     argos::GetNodeAttribute(t_node, "packet_size", c_packetSize);
+    m_swarmlist._init(m_id);
     m_swarmlist.setSwarmMask(m_localSwarmMask);
-    m_swarmlist._init();
     m_swarmlist.setShouldRebroadcast(true);
 }
 
