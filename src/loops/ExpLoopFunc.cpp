@@ -139,8 +139,8 @@ void swlexp::ExpLoopFunc::Destroy() {
 void swlexp::ExpLoopFunc::PostStep() {
     static argos::UInt32 callsTillStatusLog = m_expStatusLogDelay - 1;
 
-    // Write to realtime status log every 5 minutes.
-    static const argos::UInt32 DELAY_FOR_REALTIME_LOG = 300;
+    // Write to realtime status log every hour.
+    static const argos::UInt32 DELAY_FOR_REALTIME_LOG = 3600;
     std::time_t time = std::time(NULL);
     if (time - m_timeSinceLastRealtimeOutput >= DELAY_FOR_REALTIME_LOG) {
         m_timeSinceLastRealtimeOutput = time;
