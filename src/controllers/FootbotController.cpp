@@ -170,8 +170,7 @@ std::string swlexp::FootbotController::getCsvStatusLog(bool sideEffect) {
                NUM_MSGS_RX_SINCE_LOG      << c_CSV_DELIM <<
                bwRx                       << c_CSV_DELIM <<
                m_swarmlist.getSize()      << c_CSV_DELIM <<
-               m_swarmlist.getNumActive() << c_CSV_DELIM <<
-               '"' << m_swarmlist.serializeData(c_CSV_DELIM, ';') << "\"\n";
+               m_swarmlist.getNumActive() << "\n";
 
     if (sideEffect) {
         m_numMsgsTxAtLastLog = NUM_MSGS_TX;
@@ -208,8 +207,7 @@ void swlexp::FootbotController::writeStatusLogHeader(std::ostream& o) {
         "Num msgs rx"                    + c_CSV_DELIM +
         "Avg. rx bandwidth (B/timestep)" + c_CSV_DELIM +
         "Swl size"                       + c_CSV_DELIM +
-        "Swl num active"                 + c_CSV_DELIM +
-        "\"Swarmlist data (robot ID,lamport,ticks to inactive)\"\n";
+        "Swl num active\n";
     o << STATUS_LOG_HEADER;
 }
 

@@ -116,6 +116,7 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
 
     // Setup realtime output.
     m_timeSinceLastRealtimeOutput = std::time(NULL);
+    swlexp::FootbotController::writeStatusLogHeader(m_expRealtimeOutput);
     swlexp::FootbotController::writeStatusLogs(m_expRealtimeOutput, false);
     m_expRealtimeOutput.flush();
 
@@ -140,7 +141,7 @@ void swlexp::ExpLoopFunc::PostStep() {
     static argos::UInt32 callsTillStatusLog = m_expStatusLogDelay - 1;
 
     // Write to realtime status log every hour.
-    static const argos::UInt32 DELAY_FOR_REALTIME_LOG = 3600;
+    static const argos::UInt32 DELAY_FOR_REALTIME_LOG = 1800;
     std::time_t time = std::time(NULL);
     if (time - m_timeSinceLastRealtimeOutput >= DELAY_FOR_REALTIME_LOG) {
         m_timeSinceLastRealtimeOutput = time;

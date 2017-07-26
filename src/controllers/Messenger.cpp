@@ -6,6 +6,7 @@
 swlexp::Messenger::Messenger()
     : m_transmitter(nullptr)
     , m_receiver(nullptr)
+    , m_isFree(true)
 {
 
 }

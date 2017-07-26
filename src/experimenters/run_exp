@@ -112,7 +112,7 @@ ARGOS_IN="$GIT_ROOT/src/argos/swarmlist_sim.argos"
 FINAL_RES_CSV="$WD/res.csv"
 FOOTBOT_CONTROLLER_LIB="$BINARY_DIR/controllers/libFootbotController.so"
 LOOP_FUNCTIONS_LIB="$BINARY_DIR/loops/libexp_loop_func.so"
-FOOTBOT_STATUS_LOG_DELAY=1000
+FOOTBOT_STATUS_LOG_DELAY=500
 ENTRIES_SHOULD_BECOME_INACTIVE=false # FIXME Risk of failure if this is true because the entryIdx of the new data isn't modified when we remove entries (and thus move the last data entry to the deleted one)
 
 ##################################################
