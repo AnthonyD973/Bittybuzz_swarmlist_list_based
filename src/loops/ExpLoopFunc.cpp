@@ -5,16 +5,15 @@
 #include "ExpLoopFunc.h"
 
 namespace swlexp {
-    const argos::Real   ExpLoopFunc::c_RAB_RANGE   = 0.19;
-    argos::UInt16       ExpLoopFunc::c_packetSize;
+    argos::Real   ExpLoopFunc::c_rabRange = 0.00;
+    argos::UInt16 ExpLoopFunc::c_packetSize;
 }
 
 static const std::string   FB_CONTROLLER    = "fb_ctrl";
 static const argos::UInt32 MAX_PLACE_TRIALS = 20;
 static const argos::UInt32 MAX_ROBOT_TRIALS = 20000;
 static const argos::Real   FOOTBOT_RADIUS   = 0.085036758f;
-static const argos::Real   SF_RANGE         = swlexp::ExpLoopFunc::getRabRange() / Sqrt(2);
-static const argos::Real   HALF_SF_RANGE    = SF_RANGE * 0.5f;
+static const argos::Real   FB_AREA          = ARGOS_PI * argos::Square(0.085036758f);
 static const argos::Real   WALL_THICKNESS   = 0.1;
 static const argos::Real   WALL_HEIGHT      = 2.0;
 static const argos::Real   DENSITY          = 0.1;
@@ -59,10 +58,16 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     std::string topology;
     argos::GetNodeAttribute(t_tree, "topology", topology);
     if (topology == "line") {
+        c_rabRange = 0.19;
         _placeLine(numRobots);
     }
     else if (topology == "scalefree") {
+        c_rabRange = 0.19;
         _placeScaleFree(numRobots);
+    }
+    else if (topology == "cluster") {
+        c_rabRange = Sqrt(FB_AREA / DENSITY) * 2.0;
+        _placeCluster(numRobots);
     }
     else {
         THROW_ARGOSEXCEPTION("Unknown topology: " << topology);
@@ -166,7 +171,7 @@ bool swlexp::ExpLoopFunc::IsExperimentFinished() {
 /****************************************/
 
 void swlexp::ExpLoopFunc::_placeLine(argos::UInt32 numRobots) {
-    static const argos::Real X_SPACING = 0.00, Y_SPACING = 0.18;
+    static const argos::Real X_SPACING = 0.00, Y_SPACING = (c_rabRange - 0.01);
     // static const argos::Real X_BASEPOS = 0.00, Y_BASEPOS = 0.00, Z_BASEPOS = 0.00;
 
     // // Resize arena.
@@ -195,11 +200,22 @@ void swlexp::ExpLoopFunc::_placeLine(argos::UInt32 numRobots) {
             FB_CONTROLLER,
             pos,
             orient,
-            c_RAB_RANGE,
+            c_rabRange,
             c_packetSize);
         
         AddEntity(*fb);
     }
+}
+
+/****************************************/
+/****************************************/
+
+void swlexp::ExpLoopFunc::_placeCluster(argos::UInt32 un_robots) {
+   /* Calculate side of the region in which the robots are scattered */
+   argos::Real fHalfSide = Sqrt((FB_AREA * un_robots) / DENSITY) / 2.0f;
+   argos::CRange<argos::Real> cAreaRange(-fHalfSide, fHalfSide);
+   /* Place robots */
+   _placeUniformly(un_robots, cAreaRange);
 }
 
 /****************************************/
@@ -270,6 +286,7 @@ private:
 };
 
 static argos::Real GenerateCoordinate(argos::CRandom::CRNG* pc_rng) {
+   const argos::Real HALF_SF_RANGE = (swlexp::ExpLoopFunc::getRabRange() / Sqrt(2)) * 0.5f;
    argos::Real v = pc_rng->Uniform(argos::CRange<argos::Real>(-HALF_SF_RANGE, HALF_SF_RANGE));
    if(v > 0.0) v += HALF_SF_RANGE;
    else v -= HALF_SF_RANGE;
@@ -295,7 +312,7 @@ void swlexp::ExpLoopFunc::_placeScaleFree(argos::UInt32 un_robots) {
       FB_CONTROLLER,
       argos::CVector3(),
       argos::CQuaternion(),
-      c_RAB_RANGE,
+      c_rabRange,
       c_packetSize);
    AddEntity(*pcFB);
    sData.Insert(*pcFB);
@@ -310,7 +327,7 @@ void swlexp::ExpLoopFunc::_placeScaleFree(argos::UInt32 un_robots) {
          FB_CONTROLLER,
          argos::CVector3(),
          argos::CQuaternion(),
-         c_RAB_RANGE,
+         c_rabRange,
          c_packetSize);
       AddEntity(*pcFB);
       /* Retry choosing a pivot until you get a position or have an error */
@@ -351,7 +368,7 @@ void swlexp::ExpLoopFunc::_placeScaleFree(argos::UInt32 un_robots) {
 void swlexp::ExpLoopFunc::_placeWalls(argos::UInt32 un_robots) {
    /* Calculate arena side */
    argos::Real fArenaSide =
-      c_RAB_RANGE *
+      c_rabRange *
       Sqrt((25.0 * ARGOS_PI * un_robots) /
            ((100.0 - 4.0 * ARGOS_PI) * DENSITY));
    argos::Real fArenaSide2 = fArenaSide / 2.0;
@@ -446,7 +463,7 @@ void swlexp::ExpLoopFunc::_placeUniformly(argos::UInt32 un_robots,
          FB_CONTROLLER,
          argos::CVector3(),
          argos::CQuaternion(),
-         c_RAB_RANGE,
+         c_rabRange,
          c_packetSize);
       AddEntity(*pcFB);
       /* Try to place it in the arena */
@@ -509,7 +526,7 @@ void swlexp::ExpLoopFunc::_finishExperiment(swlexp::ExpLoopFunc::ExitCode exitCo
     else {
         remove(m_expFbCsvName.c_str());
         remove(m_expResName.c_str());
-        m_expLog      << "[ERROR] " << _exitCodeToString(exitCode) << "\n";
+        m_expLog << "[ERROR] " << _exitCodeToString(exitCode) << "\n";
         m_expLog.flush();
     }
 }

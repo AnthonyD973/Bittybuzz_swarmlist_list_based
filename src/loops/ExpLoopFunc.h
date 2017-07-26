@@ -54,10 +54,18 @@ namespace swlexp {
         void _placeLine(argos::UInt32 numRobots);
 
         /**
-         * Places a certain number of robots in small clusters.
+         * Places a certain number of robots in one large cluster in
+         * such a way that robots have a high number of neighbors in their
+         * communication range.
          * @param[in] numRobots The number of robots to place.
          */
         void _placeScaleFree(argos::UInt32 numRobots);
+
+        /**
+         * Places a certain number of robots randomly inside a square.
+         * @param[in] numRobots The number of robots to place.
+         */
+        void _placeCluster(argos::UInt32 numRobots);
 
         /**
          * Places a certain number of robots uniformly in an area.
@@ -90,7 +98,7 @@ namespace swlexp {
          * Gets the communication range of the foot-bots.
          */
         static
-        argos::Real getRabRange() { return c_RAB_RANGE; }
+        argos::Real getRabRange() { return c_rabRange; }
 
     private:
 
@@ -185,7 +193,7 @@ namespace swlexp {
         /**
          * Range of communication of the foot-bot.
          */
-        static const argos::Real c_RAB_RANGE;
+        static argos::Real c_rabRange;
 
         /**
          * Size of a communication packet.
