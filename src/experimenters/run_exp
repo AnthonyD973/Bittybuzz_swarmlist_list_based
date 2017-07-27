@@ -64,6 +64,16 @@ conduct_experiment() {
 
 ##################################################
 
+conduct_experiment_with_seed() {
+    topology=${1}
+    num_robots=${2}
+    packet_drop_prob=${3}
+    i=${4}
+    conduct_experiment
+}
+
+##################################################
+
 conduct_experiment_set() {
     TOPOLOGIES="${1}"
     NUMS_ROBOTS="${2}"
@@ -114,6 +124,9 @@ FOOTBOT_CONTROLLER_LIB="$BINARY_DIR/controllers/libFootbotController.so"
 LOOP_FUNCTIONS_LIB="$BINARY_DIR/loops/libexp_loop_func.so"
 FOOTBOT_STATUS_LOG_DELAY=500
 ENTRIES_SHOULD_BECOME_INACTIVE=false # FIXME Risk of failure if this is true because the entryIdx of the new data isn't modified when we remove entries (and thus move the last data entry to the deleted one)
+
+# Create final res file.
+echo -n "Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Messages received (total),Avg. bandwidth (B/(timestep*footbot)),Avg. received bandwidth (B/(timestep*footbot))" > $FINAL_RES_CSV
 
 ##################################################
 
@@ -178,10 +191,6 @@ num_experiments=30
 conduct_experiment_set "cluster" "10 50 100 200 300 400 500 600 700 800 1000" "0.75"
 
 ##################################################
-
-# Concatenate smaller result CSV files into a single one.
-RESULT_CSV_FILES=$(find -type f -name "res.csv" | sort -z)
-echo -n "Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Messages received (total),Avg. bandwidth (B/(timestep*footbot)),Avg. received bandwidth (B/(timestep*footbot))" > $FINAL_RES_CSV
 
 # Echo time taken
 
