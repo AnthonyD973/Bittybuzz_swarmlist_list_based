@@ -109,6 +109,7 @@ void swlexp::Swarmlist::forceConsensus(const std::vector<RobotId>& existingRobot
     static argos::CRandom::CRNG* argosRng = argos::CRandom::CreateRNG("argos");
     reset();
 
+    // Make a vector containing the id of all robots.
     std::vector<RobotId> robots = existingRobots;
     unsigned int seed = argosRng->Uniform(argos::CRange<argos::UInt32>(0, UINT32_MAX));
     std::default_random_engine rng(seed);

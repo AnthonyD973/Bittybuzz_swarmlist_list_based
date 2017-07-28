@@ -109,28 +109,25 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     }
     else if (m_protocol == "adding") {
         // Remove one robot and force consensus.
-        std::string lastPlacedRobotStrId = "fb" + std::to_string(m_numRobots - 1);
-        argos::CFootBotEntity* lastPlacedRobot =
-            dynamic_cast<argos::CFootBotEntity*>(
-                &argos::CSimulator::GetInstance().
-                GetSpace().GetEntity(lastPlacedRobotStrId));
-        if (lastPlacedRobot != nullptr) {
-            argos::CVector3 pos = lastPlacedRobot->GetEmbodiedEntity().GetOriginAnchor().Position;
-            argos::CQuaternion orient = lastPlacedRobot->GetEmbodiedEntity().GetOriginAnchor().Orientation;
-            RemoveEntity(*lastPlacedRobot);
-            FootbotController::forceConsensus();
-            argos::CEntity* robotCopy = new argos::CFootBotEntity(
-                lastPlacedRobotStrId,
-                FB_CONTROLLER,
-                pos,
-                orient,
-                c_rabRange,
-                c_packetSize);
-            AddEntity(*robotCopy);
-        }
-        else {
-            THROW_ARGOSEXCEPTION("Entity named " << lastPlacedRobotStrId << " is NOT a footbot.");
-        }
+        argos::CFootBotEntity* lastPlacedRobot = &_findFarthestFromOrigin();
+        // Entities do no have a copy constructor. We must find and save the
+        // parameters to use in the normal constructor.
+        std::string lastPlacedRobotStrId = lastPlacedRobot->GetId();
+        argos::CVector3 pos = lastPlacedRobot->GetEmbodiedEntity().GetOriginAnchor().Position;
+        argos::CQuaternion orient = lastPlacedRobot->GetEmbodiedEntity().GetOriginAnchor().Orientation;
+
+        // Remove the foot-bot, force consensus and add a new foot-bot
+        // that is identical to the one we removed.
+        RemoveEntity(*lastPlacedRobot);
+        FootbotController::forceConsensus();
+        argos::CEntity* robotCopy = new argos::CFootBotEntity(
+            lastPlacedRobotStrId,
+            FB_CONTROLLER,
+            pos,
+            orient,
+            c_rabRange,
+            c_packetSize);
+        AddEntity(*robotCopy);
     }
     else {
         THROW_ARGOSEXCEPTION("Unknown protocol: \"" << m_protocol << "\"");
@@ -188,6 +185,36 @@ bool swlexp::ExpLoopFunc::IsExperimentFinished() {
         _finishExperiment(swlexp::ExpLoopFunc::ExitCode::NORMAL);
     }
     return isFinished;
+}
+
+/****************************************/
+/****************************************/
+
+argos::CFootBotEntity& swlexp::ExpLoopFunc::_findFarthestFromOrigin() {
+    argos::CSpace::TMapPerType& entities =
+        argos::CSimulator::GetInstance().
+            GetSpace().GetEntitiesByType("foot-bot");
+
+    argos::Real largestDistance = 0.0;
+    argos::CFootBotEntity* farthestRobot = nullptr;
+    for (auto it = entities.begin(); it != entities.end(); ++it) {
+        argos::CFootBotEntity* fbe =
+            argos::any_cast<argos::CFootBotEntity*>(it->second);
+        argos::Real distance =
+            fbe->GetEmbodiedEntity().
+            GetOriginAnchor().Position.Length();
+
+        if (distance > largestDistance) {
+            largestDistance = distance;
+            farthestRobot = fbe;
+        }
+    }
+    if (farthestRobot != nullptr) {
+        return *farthestRobot;
+    }
+    else {
+        THROW_ARGOSEXCEPTION("No foot-bots on the arena matching the pattern \"fb*\".");
+    }
 }
 
 /****************************************/

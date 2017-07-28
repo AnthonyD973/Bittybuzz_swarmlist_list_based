@@ -53,6 +53,14 @@ namespace swlexp {
         void _placeRobots();
 
         /**
+         * Determines which robot currently is the farthest from the
+         * arena's origin.
+         * Throws an ARGoS exception if there are no foot-bots on the arena.
+         * @return The robot farthest away from the arena's origin.
+         */
+        argos::CFootBotEntity& _findFarthestFromOrigin();
+
+        /**
          * Places a certain number of robots in a line.
          * @param[in] numRobots The number of robots to place.
          */

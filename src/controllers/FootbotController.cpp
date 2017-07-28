@@ -1,4 +1,5 @@
 #include <argos3/core/simulator/simulator.h>
+#include <argos3/core/simulator/space/space.h>
 #include <sstream>
 #include <numeric> // std::accumulate
 #include <cstring> // std::memcpy
@@ -197,9 +198,26 @@ argos::UInt64 swlexp::FootbotController::getTotalNumMessagesRx() {
 /****************************************/
 
 void swlexp::FootbotController::forceConsensus() {
-    // Construct a vector containing the robot IDs of all the robots.
-    auto existingRobots = std::vector<RobotId>(c_controllers.size());
-    std::iota(existingRobots.begin(), existingRobots.end(), 0);
+    argos::CSpace::TMapPerType& entities =
+        argos::CSimulator::GetInstance().
+            GetSpace().GetEntitiesByType("foot-bot");
+
+    std::vector<RobotId> existingRobots;
+
+    std::transform(
+        entities.begin(),
+        entities.end(),
+        back_inserter(existingRobots),
+        [](std::pair<std::string, argos::CAny> elem) {
+            std::string idStr =
+                argos::any_cast<argos::CFootBotEntity*>(elem.second)->GetId();
+            return std::stoi(idStr.substr(std::string("fb").size()));
+        });
+
+    for (auto it = existingRobots.begin(); it != existingRobots.end(); ++it) {
+        std::cout << std::to_string(*it) << " ";
+    }
+    std::cout << "\n";
 
     // Force each swarmlist's consensus.
     for (FootbotController* ctrl : c_controllers) {
