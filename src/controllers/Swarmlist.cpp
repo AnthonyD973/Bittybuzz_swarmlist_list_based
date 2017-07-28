@@ -3,6 +3,9 @@
 #include <unordered_map>
 #include <cinttypes>
 #include <sstream>
+#include <random> // std::default_random_engine
+#include <chrono> // std::chrono
+#include <argos3/core/utility/math/rng.h> // argos::CRandom
 
 #include "Swarmlist.h"
 
@@ -26,6 +29,7 @@ swlexp::Swarmlist::Swarmlist(Messenger* msn)
     , m_shouldRebroadcast(false)
     , m_msgsTillNoNew(0)
 {
+    m_numActive = 0;
     m_msn->registerCallback(Messenger::MSG_TYPE_SWARM, m_swMsgCb);
 }
 
@@ -33,7 +37,92 @@ swlexp::Swarmlist::Swarmlist(Messenger* msn)
 /****************************************/
 
 swlexp::Swarmlist::~Swarmlist() {
+    c_totalNumActive -= m_numActive;
     m_msn->removeCallback(Messenger::MSG_TYPE_SWARM, m_swMsgCb);
+}
+
+/****************************************/
+/****************************************/
+
+void swlexp::Swarmlist::init(RobotId id) {
+    m_id = id;
+    reset();
+}
+
+/****************************************/
+/****************************************/
+
+void swlexp::Swarmlist::reset() {
+    m_data.clear();
+    m_newData.clear();
+    m_idToIndex.clear();
+    m_data.shrink_to_fit();
+    m_newData.shrink_to_fit();
+
+    // Reinitialize stuff
+    c_totalNumActive    -= m_numActive;
+    m_numActive          = 0;
+    m_next               = 0;
+    m_newNext            = 0;
+    m_stepsTillChunk     = STEPS_PER_CHUNK - 1;
+    m_stepsTillTick      = STEPS_PER_TICK  - 1;
+    m_numMsgsTx          = 0;
+    m_numMsgsRx          = 0;
+
+
+    c_numEntriesPerSwarmMsg =
+        (getPacketSize() - 1) /
+        (sizeof(RobotId) + sizeof(argos::UInt8) + sizeof(Lamport8));
+    
+    m_numRebroadcasts = 0;
+    argos::Real targetBroadcastFailProb = (100.0 - c_targetBroadcastSuccessProb) / 100.0;
+    argos::Real currBroadcastFailProb = 1.0;
+    while (currBroadcastFailProb > targetBroadcastFailProb) {
+        ++m_numRebroadcasts;
+        currBroadcastFailProb *= getPacketDropProb();
+    }
+
+    _update(m_id, 0, 0);
+}
+
+/****************************************/
+/****************************************/
+
+void swlexp::Swarmlist::controlStep() {
+    if (m_stepsTillChunk == 0) {
+        m_stepsTillChunk = STEPS_PER_CHUNK;
+        _sendSwarmChunk();
+    }
+    --m_stepsTillChunk;
+
+    if (m_stepsTillTick == 0) {
+        m_stepsTillTick = STEPS_PER_TICK;
+        _tick();
+    }
+    --m_stepsTillTick;
+}
+
+/****************************************/
+/****************************************/
+
+void swlexp::Swarmlist::forceConsensus(const std::vector<RobotId>& existingRobots) {
+    static argos::CRandom::CRNG* argosRng = argos::CRandom::CreateRNG("argos");
+    reset();
+
+    std::vector<RobotId> robots = existingRobots;
+    unsigned int seed = argosRng->Uniform(argos::CRange<argos::UInt32>(0, UINT32_MAX));
+    std::default_random_engine rng(seed);
+    std::shuffle(robots.begin(), robots.end(), rng);
+
+    for (RobotId id : robots) {
+        if (id != m_id) {
+            Lamport8 lamport = rng();
+            _update(id, 0, lamport);
+        }
+    }
+    m_newData.clear();
+    m_newData.shrink_to_fit();
+    m_next = argosRng->Uniform(argos::CRange<argos::UInt32>(0, m_data.size()));
 }
 
 /****************************************/
@@ -58,33 +147,6 @@ std::string swlexp::Swarmlist::serializeData(char elemDelim, char entryDelim) co
     }
 
     return sstrm.str();
-}
-
-/****************************************/
-/****************************************/
-
-void swlexp::Swarmlist::_init(RobotId id) {
-    m_numActive          = 0;
-    m_next               = 0;
-    m_stepsTillChunk     = STEPS_PER_CHUNK - 1;
-    m_stepsTillTick      = STEPS_PER_TICK  - 1;
-    m_numMsgsTx          = 0;
-    m_numMsgsRx          = 0;
-
-    c_numEntriesPerSwarmMsg =
-        (getPacketSize() - 1) /
-        (sizeof(RobotId) + sizeof(argos::UInt8) + sizeof(Lamport8));
-    
-    m_numRebroadcasts = 0;
-    argos::Real targetBroadcastFailProb = (100.0 - c_targetBroadcastSuccessProb) / 100.0;
-    argos::Real currBroadcastFailProb = 1.0;
-    while (currBroadcastFailProb > targetBroadcastFailProb) {
-        ++m_numRebroadcasts;
-        currBroadcastFailProb *= getPacketDropProb();
-    }
-
-    m_id = id;
-    _update(m_id, 0, 0);
 }
 
 /****************************************/
@@ -244,7 +306,6 @@ argos::CByteArray swlexp::Swarmlist::_makeNextMessage() {
         // Besides, if we have few entries then cost of handling the same
         // entry several times is very low.
         _next();
-
         writeInPacket(swarmMsg, entry, msgIdx);
     }
     return std::move(swarmMsg);
@@ -256,12 +317,12 @@ argos::CByteArray swlexp::Swarmlist::_makeNextMessage() {
 void swlexp::Swarmlist::_sendSwarmChunk() {
 
     // Send several swarm messages
-    argos::UInt32 numMsgsRequired = (m_numActive / c_numEntriesPerSwarmMsg + 1);
+    argos::UInt32 numMsgsRequiredToSendAllEntries = (m_numActive / c_numEntriesPerSwarmMsg + 1);
 
     const argos::UInt8 NUM_MSGS_TX =
-        (numMsgsRequired >= SWARM_CHUNK_AMOUNT) ?
+        (numMsgsRequiredToSendAllEntries >= SWARM_CHUNK_AMOUNT) ?
         (SWARM_CHUNK_AMOUNT) :
-        (numMsgsRequired);
+        (numMsgsRequiredToSendAllEntries);
 
     m_numMsgsTx += NUM_MSGS_TX;
 
@@ -276,8 +337,9 @@ void swlexp::Swarmlist::_sendSwarmChunk() {
 
 void swlexp::Swarmlist::_next() {
     ++m_next;
-    if (m_next >= m_data.size())
+    if (m_next >= m_data.size()) {
         m_next = 0;
+    }
 }
 
 /****************************************/
@@ -285,8 +347,9 @@ void swlexp::Swarmlist::_next() {
 
 void swlexp::Swarmlist::_newNext() {
     ++m_newNext;
-    if (m_newNext >= m_newData.size())
+    if (m_newNext >= m_newData.size()) {
         m_newNext = 0;
+    }
 }
 
 /****************************************/

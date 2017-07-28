@@ -46,8 +46,9 @@
         realtime_output_file="REALTIME_OUTPUT_FILE"
         fb_csv="FOOTBOT_CSV_FILE"
         fb_status_log_delay="FOOTBOT_STATUS_LOG_DELAY"
-        num_robots="NUM_ROBOTS"
-        topology="TOPOLOGY"/>
+        protocol="PROTOCOL"
+        topology="TOPOLOGY"
+        num_robots="NUM_ROBOTS"/>
 
     <arena size="3000,3000,5" center="0,0,0.25"/>
 

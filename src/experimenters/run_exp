@@ -5,7 +5,7 @@
 # ==============================
 
 conduct_experiment() {
-    subdir="exp_${topology}Topology_${num_robots}Robots_${packet_drop_prob}MsgDropProb/exp${i}"
+    subdir="exp_${protocol}protocol_${topology}Topology_${num_robots}Robots_${packet_drop_prob}MsgDropProb/exp${i}"
 
     # Run experiment
     case $RUN_OR_SUBMIT in
@@ -23,7 +23,7 @@ conduct_experiment() {
             "" \
             "$FINAL_RES_CSV" \
             $FOOTBOT_STATUS_LOG_DELAY \
-            $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE)
+            $protocol $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE)
             ;;
 
         "submit")
@@ -50,7 +50,7 @@ conduct_experiment() {
             \"$realtime_output_file\" \
             \"$FINAL_RES_CSV\" \
             $FOOTBOT_STATUS_LOG_DELAY \
-            $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE" \
+            $protocol $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE" \
             "$GIT_ROOT/src/experimenters/job_runner"
             ;;
 
@@ -65,35 +65,111 @@ conduct_experiment() {
 ##################################################
 
 conduct_experiment_with_seed() {
-    topology=${1}
-    num_robots=${2}
-    packet_drop_prob=${3}
-    i=${4}
+    protocol=${1}
+    topology=${2}
+    num_robots=${3}
+    packet_drop_prob=${4}
+    i=${5}
     conduct_experiment
 }
 
 ##################################################
 
 conduct_experiment_set() {
-    TOPOLOGIES="${1}"
-    NUMS_ROBOTS="${2}"
+    PROTOCOLS="${1}"
+    TOPOLOGIES="${2}"
     PACKET_DROP_PROBS="${3}"
-    for topology in $TOPOLOGIES
+    NUMS_ROBOTS="${4}"
+    for protocol in $PROTOCOLS
     do
-        for num_robots in $NUMS_ROBOTS
+        for topology in $TOPOLOGIES
         do
             for packet_drop_prob in $PACKET_DROP_PROBS
             do
-                i=1
-                while [ $i -le $num_experiments ]
+                for num_robots in $NUMS_ROBOTS
                 do
-                    conduct_experiment
-                    i=$(($i+1))
+                    i=1
+                    while [ $i -le $num_experiments ]
+                    do
+                        conduct_experiment
+                        i=$(($i+1))
+                    done
                 done
             done
         done
     done
 }
+
+##################################################
+
+conduct_consensus_experiments() {
+
+    num_experiments=1
+    conduct_experiment_set "consensus" "line" "0.00" "10 50 100 200 300 400 500 600 700 800 900 1000 1500 2000 2500 3000 4000 5000"
+
+    ##################################################
+
+    num_experiments=30
+    conduct_experiment_set "consensus" "line" "0.25" "10 50 100 200 300 500 800 1000 2000"
+
+    ##################################################
+
+    num_experiments=30
+    conduct_experiment_set "consensus" "line" "0.50" "10 50 100 200 300 400 500"
+
+    ##################################################
+
+    num_experiments=30
+    conduct_experiment_set "consensus" "line" "0.75" "10 30 50 100 200 250 300 350 400"
+
+    ##################################################
+    ##################################################
+
+    num_experiments=30
+    conduct_experiment_set "consensus" "scalefree" "0.00" "10 50 100 200 500 1000 2000 5000 10000"
+
+    ##################################################
+
+    num_experiments=30
+    conduct_experiment_set "consensus" "scalefree" "0.25" "10 50 100 200 500 1000 2000 3000 5000"
+
+    ##################################################
+
+    num_experiments=30
+    conduct_experiment_set "consensus" "scalefree" "0.50" "10 50 100 200 300 500 800 1000 2000"
+
+    ##################################################
+
+    num_experiments=30
+    conduct_experiment_set "consensus" "scalefree" "0.75" "10 50 100 200 300 400 500 800 1000"
+
+    ##################################################
+    ##################################################
+
+    num_experiments=30
+    conduct_experiment_set "consensus" "cluster" "0.00" "10 50 100 200 500 1000 2000 3000 5000 8000"
+
+    ##################################################
+
+    num_experiments=30
+    conduct_experiment_set "consensus" "cluster" "0.25" "10 50 100 200 500 1000 2000 3000 4000"
+
+    ##################################################
+
+    num_experiments=30
+    conduct_experiment_set "consensus" "cluster" "0.50" "10 50 100 200 300 500 800 1000 1500"
+
+    ##################################################
+
+    num_experiments=30
+    conduct_experiment_set "consensus" "cluster" "0.75" "10 50 100 200 300 400 500 600 700 800 1000"
+}
+
+##################################################
+
+# conduct_adding_experiments() {
+#     # TODO
+# }
 
 # ==============================
 # =           SCRIPT           =
@@ -126,70 +202,13 @@ FOOTBOT_STATUS_LOG_DELAY=500
 ENTRIES_SHOULD_BECOME_INACTIVE=false # FIXME Risk of failure if this is true because the entryIdx of the new data isn't modified when we remove entries (and thus move the last data entry to the deleted one)
 
 # Create final res file.
-echo -n "Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Messages received (total),Avg. bandwidth (B/(timestep*footbot)),Avg. received bandwidth (B/(timestep*footbot))" > $FINAL_RES_CSV
+echo -n "Protocol,Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Messages received (total),Avg. bandwidth (B/(timestep*footbot)),Avg. received bandwidth (B/(timestep*footbot))" > $FINAL_RES_CSV
 
 ##################################################
-
-num_experiments=1
-conduct_experiment_set "line" "10 50 100 200 300 400 500 600 700 800 900 1000 1500 2000 2500 3000 4000 5000" "0.00"
-
-##################################################
-
+# Conduct experiments
 num_experiments=30
-conduct_experiment_set "line" "10 50 100 200 300 500 800 1000 2000" "0.25"
-
-##################################################
-
-num_experiments=30
-conduct_experiment_set "line" "10 50 100 200 300 400 500" "0.50"
-
-##################################################
-
-num_experiments=30
-conduct_experiment_set "line" "10 30 50 100 200 250 300 350 400" "0.75"
-
-##################################################
-##################################################
-
-num_experiments=30
-conduct_experiment_set "scalefree" "10 50 100 200 500 1000 2000 5000 10000" "0.00"
-
-##################################################
-
-num_experiments=30
-conduct_experiment_set "scalefree" "10 50 100 200 500 1000 2000 3000 5000" "0.25"
-
-##################################################
-
-num_experiments=30
-conduct_experiment_set "scalefree" "10 50 100 200 300 500 800 1000 2000" "0.50"
-
-##################################################
-
-num_experiments=30
-conduct_experiment_set "scalefree" "10 50 100 200 300 400 500 800 1000" "0.75"
-
-##################################################
-##################################################
-
-num_experiments=30
-conduct_experiment_set "cluster" "10 50 100 200 500 1000 2000 3000 5000 8000" "0.00"
-
-##################################################
-
-num_experiments=30
-conduct_experiment_set "cluster" "10 50 100 200 500 1000 2000 3000 4000" "0.25"
-
-##################################################
-
-num_experiments=30
-conduct_experiment_set "cluster" "10 50 100 200 300 500 800 1000 1500" "0.50"
-
-##################################################
-
-num_experiments=30
-conduct_experiment_set "cluster" "10 50 100 200 300 400 500 600 700 800 1000" "0.75"
-
+conduct_experiment_set "adding" "scalefree" "0.00" "50"
+# conduct_consensus_experiments
 ##################################################
 
 # Echo time taken

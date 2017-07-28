@@ -53,25 +53,9 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     argos::GetNodeAttribute(t_tree, "fb_csv", m_expFbCsvName);
     argos::GetNodeAttribute(t_tree, "realtime_output_file", m_expRealtimeOutputName);
     argos::GetNodeAttribute(t_tree, "fb_status_log_delay", m_expStatusLogDelay);
-    argos::UInt32 numRobots;
-    argos::GetNodeAttribute(t_tree, "num_robots", numRobots);
-    std::string topology;
-    argos::GetNodeAttribute(t_tree, "topology", topology);
-    if (topology == "line") {
-        c_rabRange = 0.19;
-        _placeLine(numRobots);
-    }
-    else if (topology == "scalefree") {
-        c_rabRange = 0.19;
-        _placeScaleFree(numRobots);
-    }
-    else if (topology == "cluster") {
-        c_rabRange = Sqrt(FB_AREA / DENSITY) * 2.0;
-        _placeCluster(numRobots);
-    }
-    else {
-        THROW_ARGOSEXCEPTION("Unknown topology: " << topology);
-    }
+    argos::GetNodeAttribute(t_tree, "protocol", m_protocol);
+    argos::GetNodeAttribute(t_tree, "topology", m_topology);
+    argos::GetNodeAttribute(t_tree, "num_robots", m_numRobots);
 
     // Open files.
     m_expFbCsv.open(m_expFbCsvName, std::ios::trunc);
@@ -98,21 +82,59 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
 
     // Write experiment params to result and log files.
     m_expRes << '\n' <<
-                topology      << c_CSV_DELIM <<
-                numRobots     << c_CSV_DELIM <<
-                m_msgDropProb;
+                m_protocol    << c_CSV_DELIM <<
+                m_topology    << c_CSV_DELIM <<
+                m_msgDropProb << c_CSV_DELIM <<
+                m_numRobots;
 
     m_expLog << "---EXPERIMENT START---\n"
-                "Topology: " << topology << "\n" <<
-                "Number of robots: " << numRobots << "\n"
-                "Drop probability: " << (m_msgDropProb * 100) << "%\n";
+                "Protocol: " << m_protocol << "\n"
+                "Topology: " << m_topology << "\n"
+                "Drop probability: " << (m_msgDropProb * 100) << "%\n"
+                "Number of robots: " << m_numRobots << "\n";
 
     argos::LOG << "--------------------------------------\n"
-                  "TOPOLOGY: " << topology << "\n" <<
-                  "NUMBER OF ROBOTS: " << numRobots << "\n"
-                  "PACKET DROP PROBABILITY: " << (m_msgDropProb * 100) << "%\n"
+                  "PROTOCOL:         " << m_protocol << "\n"
+                  "TOPOLOGY:         " << m_topology << "\n"
+                  "DROP PROBABILITY: " << (m_msgDropProb * 100) << "%\n"
+                  "NUMBER OF ROBOTS: " << m_numRobots << "\n"
                   "--------------------------------------\n";
     m_expLog.flush();
+
+    _placeRobots();
+
+    // Prepare the aparatus for protocol
+    if (m_protocol == "consensus") {
+        // Nothing to do.
+    }
+    else if (m_protocol == "adding") {
+        // Remove one robot and force consensus.
+        std::string lastPlacedRobotStrId = "fb" + std::to_string(m_numRobots - 1);
+        argos::CFootBotEntity* lastPlacedRobot =
+            dynamic_cast<argos::CFootBotEntity*>(
+                &argos::CSimulator::GetInstance().
+                GetSpace().GetEntity(lastPlacedRobotStrId));
+        if (lastPlacedRobot != nullptr) {
+            argos::CVector3 pos = lastPlacedRobot->GetEmbodiedEntity().GetOriginAnchor().Position;
+            argos::CQuaternion orient = lastPlacedRobot->GetEmbodiedEntity().GetOriginAnchor().Orientation;
+            RemoveEntity(*lastPlacedRobot);
+            FootbotController::forceConsensus();
+            argos::CEntity* robotCopy = new argos::CFootBotEntity(
+                lastPlacedRobotStrId,
+                FB_CONTROLLER,
+                pos,
+                orient,
+                c_rabRange,
+                c_packetSize);
+            AddEntity(*robotCopy);
+        }
+        else {
+            THROW_ARGOSEXCEPTION("Entity named " << lastPlacedRobotStrId << " is NOT a footbot.");
+        }
+    }
+    else {
+        THROW_ARGOSEXCEPTION("Unknown protocol: \"" << m_protocol << "\"");
+    }
 
     // Setup realtime output.
     m_timeSinceLastRealtimeOutput = std::time(NULL);
@@ -171,8 +193,30 @@ bool swlexp::ExpLoopFunc::IsExperimentFinished() {
 /****************************************/
 /****************************************/
 
+void swlexp::ExpLoopFunc::_placeRobots() {
+    // Place robots.
+    if (m_topology == "line") {
+        c_rabRange = 0.19;
+        _placeLine(m_numRobots);
+    }
+    else if (m_topology == "scalefree") {
+        c_rabRange = 0.19;
+        _placeScaleFree(m_numRobots);
+    }
+    else if (m_topology == "cluster") {
+        c_rabRange = Sqrt(FB_AREA / DENSITY) * 2.0;
+        _placeCluster(m_numRobots);
+    }
+    else {
+        THROW_ARGOSEXCEPTION("Unknown topology: " << m_topology);
+    }
+}
+
+/****************************************/
+/****************************************/
+
 void swlexp::ExpLoopFunc::_placeLine(argos::UInt32 numRobots) {
-    static const argos::Real X_SPACING = 0.00, Y_SPACING = (c_rabRange - 0.01);
+    static const argos::Real X_SPACING = 0.00, Y_SPACING = -(c_rabRange - 0.01);
     // static const argos::Real X_BASEPOS = 0.00, Y_BASEPOS = 0.00, Z_BASEPOS = 0.00;
 
     // // Resize arena.
@@ -190,7 +234,7 @@ void swlexp::ExpLoopFunc::_placeLine(argos::UInt32 numRobots) {
     // GetSpace().SetArenaCenter(ARENA_CENTER);
 
     // Place the footbots
-    argos::Real baseX = - X_SPACING * (numRobots / 2.0);
+    argos::Real baseX = X_SPACING * (numRobots / 2.0);
     argos::Real baseY = - Y_SPACING * (numRobots / 2.0);
     for (argos::UInt32 i = 0; i < numRobots; ++i) {
         argos::CVector3 pos = argos::CVector3(baseX + i * X_SPACING, baseY + i * Y_SPACING, 0);

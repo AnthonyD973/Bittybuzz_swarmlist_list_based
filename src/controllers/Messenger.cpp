@@ -76,7 +76,7 @@ void swlexp::Messenger::removeCallback(Callback& callback) {
 /****************************************/
 /****************************************/
 
-void swlexp::Messenger::_controlStep() {
+void swlexp::Messenger::controlStep() {
 
     const argos::CCI_RangeAndBearingSensor::TReadings& readings =
         m_receiver->GetReadings();

@@ -22,7 +22,6 @@ namespace swlexp {
 
     protected:
 
-        friend class FootbotController;
         friend class SwarmMsgCallback;
 
     public:
@@ -127,6 +126,35 @@ namespace swlexp {
 
         ~Swarmlist();
 
+        // Init, control step, reset
+
+        /**
+         * Initializes the swarmlist.
+         * @param[in] id The ID of the swarmlist's owner.
+         */
+        void init(RobotId id);
+
+        /**
+         * Function that should be called exactly once every timestep.
+         */
+        void controlStep();
+
+        /**
+         * Resets the swarmlist.
+         */
+        void reset();
+
+        /**
+         * @brief Places the swarmlist in a consensus state.
+         * This sets the lamport to a random value for each robot
+         * and resets the timer. This also takes a random entry as
+         * the next entry to send.
+         * @details This is used when we want to see how long it
+         * would take for a new robot's data to be propagated
+         * through an existing swarm.
+         * @param[in] existingRobots A vector of all existing robots.
+         */
+        void forceConsensus(const std::vector<RobotId>& existingRobots);
 
         /**
          * Sets whether we should rebroadcast new entries several times.
@@ -180,31 +208,6 @@ namespace swlexp {
         std::string serializeData(char elemDelim, char entryDelim) const;
 
     private:
-
-        // Init, control step
-
-        /**
-         * Initializes the swarmlist.
-         */
-        void _init(RobotId id);
-
-        /**
-         * Function that should be called exactly once every timestep.
-         */
-        inline
-        void _controlStep() {
-            if (m_stepsTillChunk == 0) {
-                m_stepsTillChunk = STEPS_PER_CHUNK;
-                _sendSwarmChunk();
-            }
-            --m_stepsTillChunk;
-
-            if (m_stepsTillTick == 0) {
-                m_stepsTillTick = STEPS_PER_TICK;
-                _tick();
-            }
-            --m_stepsTillTick;
-        }
 
         // Other functions
 
@@ -305,7 +308,7 @@ namespace swlexp {
         RobotId m_id;                     ///< ID of the robot whose swarmlist this is.
         std::vector<Entry> m_data;        ///< Index => Entry in O(1)
         std::vector<NewData> m_newData;   ///< Data of the new robots.
-        std::unordered_map<RobotId, argos::UInt32> m_idToIndex; ///< Robot ID => Index in O(1)
+        std::unordered_map<RobotId, argos::UInt32> m_idToIndex; ///< Robot ID => Index of m_data in O(1)
 
         argos::UInt32 m_numActive;        ///< Number of active entries.
         argos::UInt32 m_next;             ///< The index of the next entry to send via a swarm chunk.

@@ -48,6 +48,11 @@ namespace swlexp {
     private:
 
         /**
+         * Places the robots depending on the topology.
+         */
+        void _placeRobots();
+
+        /**
          * Places a certain number of robots in a line.
          * @param[in] numRobots The number of robots to place.
          */
@@ -170,16 +175,36 @@ namespace swlexp {
         std::time_t m_timeSinceLastRealtimeOutput;
 
         /**
-         * @brief How often (in timesteps) wait until we do meta things, i.e.,
-         * 1) request the footbots to log their status.
+         * @brief How often (in timesteps) wait until we request the
+         * foot-bots to log their status.
          */
         argos::UInt32 m_expStatusLogDelay;
 
         /**
-         * Experiment param. Specifies the probablility that a
+         * @brief Experiment param. Specifies what the experiment does.
+         * @details Possible values:
+         * 1) "consensus" -- Runs an experiment from scratch and stops until
+         * all the robots have the data of all the others.
+         * 2) "adding" -- Forces consensus on all the robots at the
+         * beginning of the experiment, and immediately adds another robot.
+         */
+        std::string m_protocol;
+
+        /**
+         * @brief Experiment param. Specifies what topology we are in.
+         */
+        std::string m_topology;
+
+        /**
+         * @brief Experiment param. Specifies the probablility that a
          * message that should have been received is dropped.
          */
         argos::Real m_msgDropProb;
+
+        /**
+         * @brief Experiment param. Specifies how many robots are placed.
+         */
+        argos::UInt32 m_numRobots;
 
     // ==============================
     // =       STATIC MEMBERS       =

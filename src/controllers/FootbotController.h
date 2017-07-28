@@ -94,6 +94,15 @@ namespace swlexp {
         argos::UInt32 getNumControllers() { return c_controllers.size(); }
 
         /**
+         * Makes all robots reach conensus immediately.
+         * This is used when we want to see how long it would take
+         * for a new robot's data to be propagated through an
+         * existing swarm.
+         */
+        static
+        void forceConsensus();
+
+        /**
          * Determines the first ("header") line of the CSV log file.
          * @param[in,out] o The stream to write the header line into.
          * @param[in] sideEffect Whether a call to this function sets
@@ -145,7 +154,6 @@ namespace swlexp {
         argos::UInt8 m_localSwarmMask;       ///< Swarm mask of the current robot.
         
         argos::UInt16 m_stepsTillTick;       ///< Number of control steps until a swarmlist tick is sent.
-        argos::UInt16 m_stepsTillNextChunk;  ///< Number of control steps until a swarm chunk is triggered.
 
         argos::UInt32 m_timeAtLastLog = (argos::UInt32)-1; ///< Simulation time at the last status log.
         argos::UInt64 m_numMsgsTxAtLastLog = 0; ///< Number of sent messages at the last status log.
@@ -153,8 +161,8 @@ namespace swlexp {
 
 
         // Sensors/Actuators
-        
-        argos::CCI_LEDsActuator* m_leds;     ///< For setting the LEDs' color.
+
+        argos::CCI_LEDsActuator* m_leds;       ///< For setting the LEDs' color.
 
     // ==============================
     // =       STATIC MEMBERS       =

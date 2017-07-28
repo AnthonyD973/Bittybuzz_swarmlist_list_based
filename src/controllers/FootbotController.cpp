@@ -50,20 +50,6 @@ void swlexp::FootbotController::Init(argos::TConfigurationNode& t_node) {
     std::string idStr = GetId().substr(std::string("fb").size());
     m_id = std::stoi(idStr);
 
-    // Initialize stuff
-    m_localSwarmMask = 0x01;
-
-    // Get actuators and sensors and build the messenger
-    m_leds    = GetActuator<argos::CCI_LEDsActuator>("leds");
-    argos::CCI_RangeAndBearingActuator* rabAct  = GetActuator<argos::CCI_RangeAndBearingActuator>("range_and_bearing");
-    argos::CCI_RangeAndBearingSensor*   rabSens = GetSensor  <argos::CCI_RangeAndBearingSensor  >("range_and_bearing");
-    m_msn.plugComponents(rabAct, rabSens);
-
-    // Configure swarm message stuff.
-    bool entriesShouldBecomeInactive;
-    argos::GetNodeAttribute(t_node, "entries_should_become_inactive", entriesShouldBecomeInactive);
-    swlexp::Swarmlist::setEntriesShouldBecomeInactive(entriesShouldBecomeInactive);
-
     // Get packet drop probability.
     argos::TConfigurationNode controllers        = argos::GetNode(argos::CSimulator::GetInstance().GetConfigurationRoot(), "controllers");
     argos::TConfigurationNode footbot_controller = argos::GetNode(controllers,        "footbot_controller");
@@ -71,10 +57,22 @@ void swlexp::FootbotController::Init(argos::TConfigurationNode& t_node) {
     argos::TConfigurationNode rab                = argos::GetNode(sensors,            "range_and_bearing");
     argos::GetNodeAttribute(rab, "packet_drop_prob", c_packetDropProb);
 
+    // Get actuators and sensors and build the messenger
+    m_leds    = GetActuator<argos::CCI_LEDsActuator>("leds");
+    argos::CCI_RangeAndBearingActuator* rabAct  = GetActuator<argos::CCI_RangeAndBearingActuator>("range_and_bearing");
+    argos::CCI_RangeAndBearingSensor*   rabSens = GetSensor  <argos::CCI_RangeAndBearingSensor  >("range_and_bearing");
+    m_msn.init(rabAct, rabSens);
+
+    // Get packet size and whether entries should become inactive and init
+    // the swarmlist.
     argos::GetNodeAttribute(t_node, "packet_size", c_packetSize);
-    m_swarmlist._init(m_id);
+    m_swarmlist.init(m_id);
+    m_localSwarmMask = 0x01;
     m_swarmlist.setSwarmMask(m_localSwarmMask);
     m_swarmlist.setShouldRebroadcast(true);
+    bool entriesShouldBecomeInactive;
+    argos::GetNodeAttribute(t_node, "entries_should_become_inactive", entriesShouldBecomeInactive);
+    swlexp::Swarmlist::setEntriesShouldBecomeInactive(entriesShouldBecomeInactive);
 }
 
 /****************************************/
@@ -84,44 +82,44 @@ void swlexp::FootbotController::ControlStep() {
     static argos::CSpace& space =
         argos::CSimulator::GetInstance().GetSpace();
 
-    m_msn._controlStep();
-    m_swarmlist._controlStep();
+    m_msn.controlStep();
+    m_swarmlist.controlStep();
 
-    // switch(m_swarmlist.getNumActive() % 8) {
-    //     case 0: {
-    //         m_leds->SetAllColors(argos::CColor::BLACK);
-    //         break;
-    //     }
-    //     case 1: {
-    //         m_leds->SetAllColors(argos::CColor::RED);
-    //         break;
-    //     }
-    //     case 2: {
-    //         m_leds->SetAllColors(argos::CColor::YELLOW);
-    //         break;
-    //     }
-    //     case 3: {
-    //         m_leds->SetAllColors(argos::CColor::GREEN);
-    //         break;
-    //     }
-    //     case 4: {
-    //         m_leds->SetAllColors(argos::CColor::CYAN);
-    //         break;
-    //     }
-    //     case 5: {
-    //         m_leds->SetAllColors(argos::CColor::BLUE);
-    //         break;
-    //     }
-    //     case 6: {
-    //         m_leds->SetAllColors(argos::CColor::MAGENTA);
-    //         break;
-    //     }
-    //     case 7: {
-    //         m_leds->SetAllColors(argos::CColor::WHITE);
-    //         break;
-    //     }
-    //     default: ;
-    // }
+    switch(m_swarmlist.getNumActive() % 8) {
+        case 0: {
+            m_leds->SetAllColors(argos::CColor::BLACK);
+            break;
+        }
+        case 1: {
+            m_leds->SetAllColors(argos::CColor::RED);
+            break;
+        }
+        case 2: {
+            m_leds->SetAllColors(argos::CColor::YELLOW);
+            break;
+        }
+        case 3: {
+            m_leds->SetAllColors(argos::CColor::GREEN);
+            break;
+        }
+        case 4: {
+            m_leds->SetAllColors(argos::CColor::CYAN);
+            break;
+        }
+        case 5: {
+            m_leds->SetAllColors(argos::CColor::BLUE);
+            break;
+        }
+        case 6: {
+            m_leds->SetAllColors(argos::CColor::MAGENTA);
+            break;
+        }
+        case 7: {
+            m_leds->SetAllColors(argos::CColor::WHITE);
+            break;
+        }
+        default: ;
+    }
 
     const argos::UInt32 TIME = space.GetSimulationClock();
     if (m_id == 0 && TIME % 1000 == 0) {
@@ -193,6 +191,20 @@ argos::UInt64 swlexp::FootbotController::getTotalNumMessagesTx() {
 
 argos::UInt64 swlexp::FootbotController::getTotalNumMessagesRx() {
     return std::accumulate(c_controllers.begin(), c_controllers.end(), 0, _msgTxElemSum);
+}
+
+/****************************************/
+/****************************************/
+
+void swlexp::FootbotController::forceConsensus() {
+    // Construct a vector containing the robot IDs of all the robots.
+    auto existingRobots = std::vector<RobotId>(c_controllers.size());
+    std::iota(existingRobots.begin(), existingRobots.end(), 0);
+
+    // Force each swarmlist's consensus.
+    for (FootbotController* ctrl : c_controllers) {
+        ctrl->m_swarmlist.forceConsensus(existingRobots);
+    }
 }
 
 /****************************************/

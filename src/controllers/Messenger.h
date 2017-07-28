@@ -72,12 +72,18 @@ namespace swlexp {
         ~Messenger();
 
         /**
-         * Sets the transmitter and the receiver.
+         * Initializes the messenger, in effect setting the transmitter
+         * and the receiver.
          */
         inline
-        void plugComponents(argos::CCI_RangeAndBearingActuator* transmitter,
-                            argos::CCI_RangeAndBearingSensor* receiver)
+        void init(argos::CCI_RangeAndBearingActuator* transmitter,
+                  argos::CCI_RangeAndBearingSensor* receiver)
         { m_transmitter = transmitter; m_receiver = receiver; }
+
+        /**
+         * Function that should be called exactly once every timestep.
+         */
+        void controlStep();
 
         /**
          * Sets a message to be sent.
@@ -141,11 +147,6 @@ namespace swlexp {
 
         Messenger(Messenger&) = delete;
         Messenger& operator=(const Messenger&) = delete;
-
-        /**
-         * Function that should be called exactly once every timestep.
-         */
-        void _controlStep();
 
     // ==============================
     // =         ATTRIBUTES         =
