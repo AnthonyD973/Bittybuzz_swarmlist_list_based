@@ -32,7 +32,7 @@ conduct_experiment() {
         "submit")
             # Don't send more than 500 jobs at the same time.
             while [ $(qselect -u $(whoami) | wc -l) -ge 500 ]; do sleep 10; done
-            echo "STARTING: ${i}-th experiment with ${topology}, ${num_robots}, ${packet_drop_prob}."
+            echo "SUBMITTING: ${i}-th experiment with ${topology}, ${num_robots}, ${packet_drop_prob}."
 
             experiment_dir="$LSCRATCH/$subdir"
             experiment_outdir="$WD/$subdir"
@@ -76,8 +76,8 @@ conduct_experiment_with_seed() {
     i=${1}
     protocol=${2}
     topology=${3}
-    num_robots=${4}
-    packet_drop_prob=${5}
+    packet_drop_prob=${4}
+    num_robots=${5}
     conduct_experiment
 }
 
