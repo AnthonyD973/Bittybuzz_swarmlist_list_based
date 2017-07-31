@@ -123,7 +123,7 @@ void swlexp::FootbotController::ControlStep() {
     }
 
     const argos::UInt32 TIME = space.GetSimulationClock();
-    if (m_id == 0 && TIME % 1000 == 0) {
+    if (m_id == c_controllers.size() - 1 && TIME % 1000 == 0) {
         std::cout << "Robot #"     << m_id << "\t; " <<
                      "Timesteps: " << TIME << "\t; " <<
                      "Swarmlist size: " << m_swarmlist.getSize() << "\n";
@@ -214,11 +214,6 @@ void swlexp::FootbotController::forceConsensus() {
             return std::stoi(idStr.substr(std::string("fb").size()));
         });
 
-    for (auto it = existingRobots.begin(); it != existingRobots.end(); ++it) {
-        std::cout << std::to_string(*it) << " ";
-    }
-    std::cout << "\n";
-
     // Force each swarmlist's consensus.
     for (FootbotController* ctrl : c_controllers) {
         ctrl->m_swarmlist.forceConsensus(existingRobots);
@@ -246,7 +241,25 @@ void swlexp::FootbotController::writeStatusLogHeader(std::ostream& o) {
 
 bool swlexp::FootbotController::isConsensusReached() {
     const argos::UInt32 NUM_CONTROLLERS = getNumControllers();
-    return swlexp::Swarmlist::getTotalNumActive() == NUM_CONTROLLERS * NUM_CONTROLLERS;
+    return Swarmlist::getTotalNumActive() == NUM_CONTROLLERS * NUM_CONTROLLERS;
+}
+
+/****************************************/
+/****************************************/
+
+bool swlexp::FootbotController::isExperimentStalling(
+    argos::UInt32 stepsToStall) {
+
+    static argos::UInt32 timeSinceLastIncrease = 0;
+    static argos::UInt64 lastTotalNumActive = 0;
+    const argos::UInt32 TIME =
+        argos::CSimulator::GetInstance().GetSpace().GetSimulationClock();
+    if (Swarmlist::getTotalNumActive() > lastTotalNumActive) {
+        lastTotalNumActive = Swarmlist::getTotalNumActive();
+        timeSinceLastIncrease = TIME;
+        return false;
+    }
+    return  (TIME - timeSinceLastIncrease > stepsToStall);
 }
 
 /****************************************/

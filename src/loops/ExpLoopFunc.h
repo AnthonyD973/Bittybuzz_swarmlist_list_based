@@ -27,7 +27,9 @@ namespace swlexp {
          * Enum that gives info about why we are exiting.
          */
         enum ExitCode : argos::SInt16 {
-            NORMAL          = 0x00, ///< Exited normally.
+            NORMAL          = 0, ///< Exited normally.
+            WALLTIME_REACHED,    ///< Reached walltime before the experiment could finish.
+            STALLING_EXPERIMENT, ///< No new data had been propagated for a while.
         };
 
     // ==============================
@@ -180,10 +182,26 @@ namespace swlexp {
         /**
          * Time for the realtime output file.
          */
-        std::time_t m_timeSinceLastRealtimeOutput;
+        std::time_t m_timeAtLastRealtimeOutput;
 
         /**
-         * @brief How often (in timesteps) wait until we request the
+         * Time at which the experiment began.
+         */
+        std::time_t m_timeBeginning;
+
+        /**
+         * Maximum time (in sec) after which we kill the experiment.
+         */
+        argos::UInt32 m_expWalltime;
+
+        /**
+         * Number of timesteps without progress after which we consider that
+         * the experiment is stalling and kill it.
+         */
+        argos::UInt32 m_expStepsToStall;
+
+        /**
+         * @brief How long (in timesteps) we wait until we request the
          * foot-bots to log their status.
          */
         argos::UInt32 m_expStatusLogDelay;
@@ -191,7 +209,7 @@ namespace swlexp {
         /**
          * @brief Experiment param. Specifies what the experiment does.
          * @details Possible values:
-         * 1) "consensus" -- Runs an experiment from scratch and stops until
+         * 1) "consensus" -- Runs an experiment from scratch and stops when
          * all the robots have the data of all the others.
          * 2) "adding" -- Forces consensus on all the robots at the
          * beginning of the experiment, and immediately adds another robot.

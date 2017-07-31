@@ -131,6 +131,18 @@ namespace swlexp {
          */
         static
         bool isConsensusReached();
+
+        /**
+         * Determines whether the experiment has not been making any
+         * progress for a while.
+         * We define "progress" to be an increase in the total number of
+         * active entries.
+         * @param[in] stepsToStall The number of timesteps without any
+         * progress after which we declare the experiment as stalling.
+         * @return Whether the experiment is stalling.
+         */
+        static
+        bool isExperimentStalling(argos::UInt32 stepsToStall);
     
     private:
 

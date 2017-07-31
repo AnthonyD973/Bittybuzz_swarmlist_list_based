@@ -38,6 +38,8 @@ using argos::CARGoSException; // Required because of the THROW_ARGOSEXCEPTION ma
 
 void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
 
+    m_timeBeginning = std::time(NULL);
+
     // Get experiment params
     argos::TConfigurationNode controllers        = argos::GetNode(GetSimulator().GetConfigurationRoot(), "controllers");
     argos::TConfigurationNode footbot_controller = argos::GetNode(controllers,        "footbot_controller");
@@ -53,9 +55,29 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     argos::GetNodeAttribute(t_tree, "fb_csv", m_expFbCsvName);
     argos::GetNodeAttribute(t_tree, "realtime_output_file", m_expRealtimeOutputName);
     argos::GetNodeAttribute(t_tree, "fb_status_log_delay", m_expStatusLogDelay);
+    argos::GetNodeAttribute(t_tree, "steps_to_stall", m_expStepsToStall);
+    
     argos::GetNodeAttribute(t_tree, "protocol", m_protocol);
     argos::GetNodeAttribute(t_tree, "topology", m_topology);
     argos::GetNodeAttribute(t_tree, "num_robots", m_numRobots);
+
+    std::string walltimeStr;
+    argos::GetNodeAttribute(t_tree, "walltime", walltimeStr);
+    const char* wtCStr = walltimeStr.c_str();
+    m_expWalltime = 0;
+    while (wtCStr[0] != '\0') {
+        while (wtCStr[1] != ':'  &&
+               wtCStr[1] != '\0' &&
+               wtCStr[0] == '0') {
+            ++wtCStr;
+        }
+        m_expWalltime *= 60;
+        m_expWalltime += std::atoi(wtCStr);
+        while (wtCStr[0] != ':' && wtCStr[1] != '\0') {
+            ++wtCStr;
+        }
+        ++wtCStr;
+    }
 
     // Open files.
     m_expFbCsv.open(m_expFbCsvName, std::ios::trunc);
@@ -93,7 +115,16 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
                 "Drop probability: " << (m_msgDropProb * 100) << "%\n"
                 "Number of robots: " << m_numRobots << "\n";
 
+    std::string toDisplayWalltime;
+    if (m_expWalltime > 0) {
+        toDisplayWalltime = walltimeStr + " (" + std::to_string(m_expWalltime) + " seconds)";
+    }
+    else {
+        toDisplayWalltime = "none";
+    }
+
     argos::LOG << "--------------------------------------\n"
+                  "WALLTIME:         " << toDisplayWalltime << "\n"
                   "PROTOCOL:         " << m_protocol << "\n"
                   "TOPOLOGY:         " << m_topology << "\n"
                   "DROP PROBABILITY: " << (m_msgDropProb * 100) << "%\n"
@@ -109,19 +140,19 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     }
     else if (m_protocol == "adding") {
         // Remove one robot and force consensus.
-        argos::CFootBotEntity* lastPlacedRobot = &_findFarthestFromOrigin();
+        argos::CFootBotEntity* farthestRobot = &_findFarthestFromOrigin();
         // Entities do no have a copy constructor. We must find and save the
         // parameters to use in the normal constructor.
-        std::string lastPlacedRobotStrId = lastPlacedRobot->GetId();
-        argos::CVector3 pos = lastPlacedRobot->GetEmbodiedEntity().GetOriginAnchor().Position;
-        argos::CQuaternion orient = lastPlacedRobot->GetEmbodiedEntity().GetOriginAnchor().Orientation;
+        std::string farthestRobotStrId = farthestRobot->GetId();
+        argos::CVector3 pos = farthestRobot->GetEmbodiedEntity().GetOriginAnchor().Position;
+        argos::CQuaternion orient = farthestRobot->GetEmbodiedEntity().GetOriginAnchor().Orientation;
 
         // Remove the foot-bot, force consensus and add a new foot-bot
         // that is identical to the one we removed.
-        RemoveEntity(*lastPlacedRobot);
+        RemoveEntity(*farthestRobot);
         FootbotController::forceConsensus();
         argos::CEntity* robotCopy = new argos::CFootBotEntity(
-            lastPlacedRobotStrId,
+            farthestRobotStrId,
             FB_CONTROLLER,
             pos,
             orient,
@@ -134,7 +165,7 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     }
 
     // Setup realtime output.
-    m_timeSinceLastRealtimeOutput = std::time(NULL);
+    m_timeAtLastRealtimeOutput = std::time(NULL);
     swlexp::FootbotController::writeStatusLogHeader(m_expRealtimeOutput);
     swlexp::FootbotController::writeStatusLogs(m_expRealtimeOutput, false);
     m_expRealtimeOutput.flush();
@@ -160,17 +191,21 @@ void swlexp::ExpLoopFunc::PostStep() {
     static argos::UInt32 callsTillStatusLog = m_expStatusLogDelay - 1;
 
     // Write to realtime status log every hour.
-    static const argos::UInt32 DELAY_FOR_REALTIME_LOG = 1800;
+    static const argos::UInt32 DELAY_FOR_REALTIME_LOG = 3600;
     std::time_t time = std::time(NULL);
-    if (time - m_timeSinceLastRealtimeOutput >= DELAY_FOR_REALTIME_LOG) {
-        m_timeSinceLastRealtimeOutput = time;
-        swlexp::FootbotController::writeStatusLogs(m_expRealtimeOutput, false);
+    if (time - m_timeAtLastRealtimeOutput >= DELAY_FOR_REALTIME_LOG) {
+        m_timeAtLastRealtimeOutput = time;
+        // Erase realtime file and write the new data to it.
+        m_expRealtimeOutput.close();
+        m_expRealtimeOutput = std::ofstream(m_expRealtimeOutputName.c_str(), std::ios::trunc);
+        FootbotController::writeStatusLogHeader(m_expRealtimeOutput);
+        FootbotController::writeStatusLogs(m_expRealtimeOutput, false);
         m_expRealtimeOutput.flush();
     }
 
     if (callsTillStatusLog == 0) {
         callsTillStatusLog = m_expStatusLogDelay;
-        swlexp::FootbotController::writeStatusLogs(m_expFbCsv, true);
+        FootbotController::writeStatusLogs(m_expFbCsv, true);
     }
 
     --callsTillStatusLog;
@@ -180,10 +215,21 @@ void swlexp::ExpLoopFunc::PostStep() {
 /****************************************/
 
 bool swlexp::ExpLoopFunc::IsExperimentFinished() {
-    bool isFinished = swlexp::FootbotController::isConsensusReached();
-    if (isFinished) {
-        _finishExperiment(swlexp::ExpLoopFunc::ExitCode::NORMAL);
+    std::time_t time = std::time(NULL);
+    bool isConsensusReached = FootbotController::isConsensusReached();
+    bool isWalltimeReached = (m_expWalltime != 0 && (time - m_timeBeginning >= m_expWalltime));
+    bool isExperimentStalling = FootbotController::isExperimentStalling(m_expStepsToStall);
+    if (isConsensusReached) {
+        _finishExperiment(ExitCode::NORMAL);
     }
+    else if (isWalltimeReached) {
+        _finishExperiment(ExitCode::WALLTIME_REACHED);
+    }
+    else if (isExperimentStalling) {
+        _finishExperiment(ExitCode::STALLING_EXPERIMENT);
+    }
+
+    bool isFinished = isConsensusReached;
     return isFinished;
 }
 
@@ -600,6 +646,7 @@ void swlexp::ExpLoopFunc::_finishExperiment(swlexp::ExpLoopFunc::ExitCode exitCo
         remove(m_expResName.c_str());
         m_expLog << "[ERROR] " << _exitCodeToString(exitCode) << "\n";
         m_expLog.flush();
+        THROW_ARGOSEXCEPTION(_exitCodeToString(exitCode));
     }
 }
 
@@ -607,8 +654,14 @@ void swlexp::ExpLoopFunc::_finishExperiment(swlexp::ExpLoopFunc::ExitCode exitCo
 /****************************************/
 
 std::string swlexp::ExpLoopFunc::_exitCodeToString(swlexp::ExpLoopFunc::ExitCode exitCode) {
-    if (exitCode == NORMAL) {
+    if (exitCode == ExitCode::NORMAL) {
         return "";
+    }
+    else if (exitCode == ExitCode::WALLTIME_REACHED) {
+        return "Walltime reached.";
+    }
+    else if (exitCode == ExitCode::STALLING_EXPERIMENT) {
+        return "No progress had been observed for a long time.";
     }
     else {
         THROW_ARGOSEXCEPTION("Unknown exit code: " << exitCode);

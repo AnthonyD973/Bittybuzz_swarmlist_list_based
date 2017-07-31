@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-#PBS -N swarmlist
 #PBS -j oe
-#PBS -l walltime=00:01:00
 
 #stop on errors
 set -e
@@ -16,11 +14,13 @@ EXPERIMENT_OUTDIR="${6}"
 REALTIME_OUTPUT_FILE="${7}"
 FINAL_RES_CSV="${8}"
 FOOTBOT_STATUS_LOG_DELAY=${9}
-PROTOCOL=${10}
-TOPOLOGY=${11}
-NUM_ROBOTS=${12}
-PACKET_DROP_PROB=${13}
-ENTRIES_SHOULD_BECOME_INACTIVE=${14}
+WALLTIME=${10}
+STEPS_TO_STALL=${11}
+PROTOCOL=${12}
+TOPOLOGY=${13}
+NUM_ROBOTS=${14}
+PACKET_DROP_PROB=${15}
+ENTRIES_SHOULD_BECOME_INACTIVE=${16}
 
 # Run job
 mkdir -p "$EXPERIMENT_DIR"
@@ -37,6 +37,8 @@ sed -e "s|EXPERIMENT_NUMBER|$EXPERIMENT_NUMBER|g" \
     -e "s|RES_FILE|$RES_FILE|g" \
     -e "s|FOOTBOT_CSV_FILE|$FOOTBOT_CSV_FILE|g" \
     -e "s|FOOTBOT_STATUS_LOG_DELAY|$FOOTBOT_STATUS_LOG_DELAY|g" \
+    -e "s|WALLTIME|$WALLTIME|g" \
+    -e "s|STEPS_TO_STALL|$STEPS_TO_STALL|g" \
     -e "s|PROTOCOL|$PROTOCOL|g" \
     -e "s|TOPOLOGY|$TOPOLOGY|g" \
     -e "s|NUM_ROBOTS|$NUM_ROBOTS|g" \
@@ -55,4 +57,4 @@ if [ "$EXPERIMENT_OUTDIR" != "" ]; then
 fi
 
 # Write experiment results to final result file.
-cat $RES_FILE | tail -n +1 >> $FINAL_RES_CSV
+(cat $RES_FILE | sed '/^$/d') 1>> $FINAL_RES_CSV

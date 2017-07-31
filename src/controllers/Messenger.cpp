@@ -89,7 +89,7 @@ void swlexp::Messenger::controlStep() {
         }
     }
 
-    // Set message type to 0.
+    // Set outgoing message type to 0.
     if (!m_isFree) {
         m_isFree = true;
         m_transmitter->ClearData();

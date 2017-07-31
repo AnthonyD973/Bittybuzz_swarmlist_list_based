@@ -5,7 +5,7 @@
 # ==============================
 
 conduct_experiment() {
-    subdir="exp_${protocol}protocol_${topology}Topology_${num_robots}Robots_${packet_drop_prob}MsgDropProb/exp${i}"
+    subdir="exp_${protocol}Protocol_${topology}Topology_${num_robots}Robots_${packet_drop_prob}MsgDropProb/exp${i}"
 
     # Run experiment
     case $RUN_OR_SUBMIT in
@@ -14,7 +14,7 @@ conduct_experiment() {
             experiment_dir="$WD/$subdir"
             mkdir -p "$experiment_dir"
             ("$GIT_ROOT/src/experimenters/job_runner" \
-            $i \
+            "$i" \
             "$ARGOS_IN" \
             "$FOOTBOT_CONTROLLER_LIB" \
             "$LOOP_FUNCTIONS_LIB" \
@@ -22,8 +22,11 @@ conduct_experiment() {
             "" \
             "" \
             "$FINAL_RES_CSV" \
-            $FOOTBOT_STATUS_LOG_DELAY \
-            $protocol $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE)
+            "$FOOTBOT_STATUS_LOG_DELAY" \
+            "00:00:00" \
+            "$STEPS_TO_STALL" \
+            "$protocol" "$topology" "$num_robots" "$packet_drop_prob" \
+            "$ENTRIES_SHOULD_BECOME_INACTIVE")
             ;;
 
         "submit")
@@ -41,7 +44,7 @@ conduct_experiment() {
 
             # Submit experiment.
             qsub -F " \
-            $i \
+            \"$i\" \
             \"$ARGOS_IN\" \
             \"$FOOTBOT_CONTROLLER_LIB\" \
             \"$LOOP_FUNCTIONS_LIB\" \
@@ -49,8 +52,13 @@ conduct_experiment() {
             \"$experiment_outdir\" \
             \"$realtime_output_file\" \
             \"$FINAL_RES_CSV\" \
-            $FOOTBOT_STATUS_LOG_DELAY \
-            $protocol $topology $num_robots $packet_drop_prob $ENTRIES_SHOULD_BECOME_INACTIVE" \
+            \"$FOOTBOT_STATUS_LOG_DELAY\" \
+            \"$WALLTIME\" \
+            \"$STEPS_TO_STALL\" \
+            \"$protocol\" \"$topology\" \"$num_robots\" \"$packet_drop_prob\" \
+            \"$ENTRIES_SHOULD_BECOME_INACTIVE\"" \
+            -N "${protocol::1}${topology::1}_${num_robots}_${packet_drop_prob}" \
+            -l "walltime=${WALLTIME}" \
             "$GIT_ROOT/src/experimenters/job_runner"
             ;;
 
@@ -65,11 +73,11 @@ conduct_experiment() {
 ##################################################
 
 conduct_experiment_with_seed() {
-    protocol=${1}
-    topology=${2}
-    num_robots=${3}
-    packet_drop_prob=${4}
-    i=${5}
+    i=${1}
+    protocol=${2}
+    topology=${3}
+    num_robots=${4}
+    packet_drop_prob=${5}
     conduct_experiment
 }
 
@@ -200,15 +208,20 @@ FOOTBOT_CONTROLLER_LIB="$BINARY_DIR/controllers/libFootbotController.so"
 LOOP_FUNCTIONS_LIB="$BINARY_DIR/loops/libexp_loop_func.so"
 FOOTBOT_STATUS_LOG_DELAY=500
 ENTRIES_SHOULD_BECOME_INACTIVE=false
+WALLTIME="00:01:00"
+STEPS_TO_STALL=2000
 
 # Create final res file.
 echo -n "Protocol,Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Messages received (total),Avg. bandwidth (B/(timestep*footbot)),Avg. received bandwidth (B/(timestep*footbot))" > $FINAL_RES_CSV
 
 ##################################################
-# Conduct experiments
+# Conduct small experiments
 num_experiments=1
-conduct_experiment_set "adding" "line" "0.00" "20"
+conduct_experiment_set "consensus" "line" "0.00" "300"
+
+# Conduct the "real" experiments
 # conduct_consensus_experiments
+# conduct_adding_experiments
 ##################################################
 
 # Echo time taken
