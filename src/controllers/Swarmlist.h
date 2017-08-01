@@ -119,14 +119,6 @@ namespace swlexp {
             Swarmlist* m_swarmlist;
         };
 
-
-    private:
-
-        struct NewData {
-            argos::UInt32 entryIdx; ///< Index inside the m_data vector.
-            argos::UInt8 numRebroadcastsLeft;
-        };
-
     // ==============================
     // =          METHODS           =
     // ==============================
@@ -165,15 +157,6 @@ namespace swlexp {
          * @param[in] existingRobots A vector of all existing robots.
          */
         void forceConsensus(const std::vector<RobotId>& existingRobots);
-
-        /**
-         * Sets whether we should rebroadcast new entries several times.
-         * @param[in] shouldRebroadcast Whether we should rebroadcast new
-         * entries several times.
-         */
-        inline
-        void setShouldRebroadcast(bool shouldRebroadcast)
-        { m_shouldRebroadcast = shouldRebroadcast; }
 
         void setSwarmMask(argos::UInt8 swarmMask);
 
@@ -251,27 +234,14 @@ namespace swlexp {
 
         /**
          * Changes the next entry to send.
-         * @note This does not take into account whether we have new entries.
          */
         void _next();
 
         /**
-         * Changes the next new entry to send.
-         */
-        void _newNext();
-
-        /**
          * Returns a copy of the next entry we will send.
-         * @note This does not take into account whether we have new entries.
          * @return A copy of the next entry we will send.
          */
         Entry _getNext();
-
-        /**
-         * Returns a copy of the next new entry we will send.
-         * @return A copy of the next new entry we will send.
-         */
-        Entry _getNewNext();
 
         /**
          * Creates a swarm message.
@@ -317,22 +287,16 @@ namespace swlexp {
 
         RobotId m_id;                     ///< ID of the robot whose swarmlist this is.
         std::vector<Entry> m_data;        ///< Index => Entry in O(1)
-        std::vector<NewData> m_newData;   ///< Data of the new robots.
         std::unordered_map<RobotId, argos::UInt32> m_idToIndex; ///< Robot ID => Index of m_data in O(1)
 
         argos::UInt32 m_numActive;        ///< Number of active entries.
         argos::UInt32 m_next;             ///< The index of the next entry to send via a swarm chunk.
-        argos::UInt32 m_newNext;          ///< The index of the next new entry to send via a swarm chunk when m_newData is not empty.
 
         argos::UInt64 m_numMsgsTx;        ///< Number of swarm messages transmitted since the beginning of the experiment.
         argos::UInt64 m_numMsgsRx;        ///< Number of swarm messages received since the beginning of the experiment.
 
         Messenger* m_msn;                 ///< Messenger object.
         SwarmMsgCallback m_swMsgCb;       ///< Callback object.
-
-        argos::UInt8 m_numRebroadcasts;   ///< Number of times we rebroadcast a new entry.
-        bool m_shouldRebroadcast;         ///< Whether we should rebroadcast new entries.
-        argos::UInt8 m_msgsTillNoNew;     ///< Number of swarm messages until we send a message containing non-new entries, regardless of whether we have new entries.
 
     // ==============================
     // =       STATIC MEMBERS       =
@@ -348,7 +312,6 @@ namespace swlexp {
         static const argos::UInt8 c_ROBOT_ID_POS;        ///< Offset, inside a swarmlist entry, of the robot's ID.
         static const argos::UInt8 c_SWARM_MASK_POS;      ///< Offset, inside a swarmlist entry, of the swarm mask.
         static const argos::UInt8 c_LAMPORT_POS;         ///< Offset, inside a swarmlist entry, of the lamport clock.
-        static argos::Real c_targetBroadcastSuccessProb; ///< Desired probability (in percent) of success of broadcasting new entries.
 
     };
 

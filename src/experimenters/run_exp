@@ -217,7 +217,7 @@ echo -n "Protocol,Topology,Number of robots,Message drop probability,Consensus t
 ##################################################
 # Conduct small experiments
 num_experiments=1
-conduct_experiment_set "consensus" "line" "0.00" "20"
+conduct_experiment_set "consensus" "line" "0.25" "30"
 
 # Conduct the "real" experiments
 # conduct_consensus_experiments
