@@ -5,7 +5,7 @@
 # ==============================
 
 conduct_experiment() {
-    subdir="exp_${protocol}Protocol_${topology}Topology_${num_robots}Robots_${packet_drop_prob}MsgDropProb/exp${i}"
+    subdir="exp_${protocol}Protocol_${topology}Topology_${packet_drop_prob}MsgDropProb_${num_robots}Robots/exp${i}"
 
     # Run experiment
     case $RUN_OR_SUBMIT in
@@ -57,7 +57,7 @@ conduct_experiment() {
             \"$STEPS_TO_STALL\" \
             \"$protocol\" \"$topology\" \"$num_robots\" \"$packet_drop_prob\" \
             \"$ENTRIES_SHOULD_BECOME_INACTIVE\"" \
-            -N "${protocol::1}${topology::1}_${num_robots}_${packet_drop_prob}" \
+            -N "${protocol::1}${topology::1}_${packet_drop_prob}_${num_robots}" \
             -l "walltime=${WALLTIME}" \
             "$GIT_ROOT/src/experimenters/job_runner"
             ;;
@@ -207,7 +207,7 @@ FINAL_RES_CSV="$WD/res.csv"
 FOOTBOT_CONTROLLER_LIB="$BINARY_DIR/controllers/libFootbotController.so"
 LOOP_FUNCTIONS_LIB="$BINARY_DIR/loops/libexp_loop_func.so"
 FOOTBOT_STATUS_LOG_DELAY=500
-ENTRIES_SHOULD_BECOME_INACTIVE=false
+ENTRIES_SHOULD_BECOME_INACTIVE=true
 WALLTIME="00:01:00"
 STEPS_TO_STALL=2000
 
@@ -217,7 +217,7 @@ echo -n "Protocol,Topology,Number of robots,Message drop probability,Consensus t
 ##################################################
 # Conduct small experiments
 num_experiments=1
-conduct_experiment_set "consensus" "line" "0.00" "300"
+conduct_experiment_set "consensus" "line" "0.00" "20"
 
 # Conduct the "real" experiments
 # conduct_consensus_experiments

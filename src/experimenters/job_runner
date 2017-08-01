@@ -50,11 +50,18 @@ sed -e "s|EXPERIMENT_NUMBER|$EXPERIMENT_NUMBER|g" \
 # Perform experiment
 argos3 -c "$ARGOS_OUT"
 
+# Remove realtime output
+if [ "$REALTIME_OUTPUT_FILE" != "" ]
+then
+    rm "$REALTIME_OUTPUT_FILE"
+fi
+
 # Copy generated files
 if [ "$EXPERIMENT_OUTDIR" != "" ]; then
     mkdir -p "$EXPERIMENT_OUTDIR"
     cp -r "${EXPERIMENT_DIR}" "${EXPERIMENT_OUTDIR}/.."
 fi
+
 
 # Write experiment results to final result file.
 (cat $RES_FILE | sed '/^$/d') 1>> $FINAL_RES_CSV

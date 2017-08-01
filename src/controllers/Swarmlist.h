@@ -52,7 +52,7 @@ namespace swlexp {
             inline
             swlexp::Lamport8 getLamport() const { return m_lamport; }
             inline
-            argos::UInt8 getTimeToInactive() const { return m_timeToInactive; }
+            argos::UInt32 getTimeToInactive() const { return m_timeToInactive; }
 
             /**
              * Determines whether the entry is active.
@@ -71,7 +71,7 @@ namespace swlexp {
             /**
              * Resets the entry's timer.
              */
-            void resetTimer() { m_timeToInactive = SWARMLIST_TICKS_TO_INACTIVE; }
+            void resetTimer() { m_timeToInactive = c_ticksToInactive; }
 
             /**
              * Sets the entry's swarm mask.
@@ -84,11 +84,22 @@ namespace swlexp {
              */
             void incrementLamport() { ++m_lamport; }
 
+        public:
+            /**
+             * Sets after how many ticks without any update we consider the entry
+             * to be inactive.
+             */
+            inline static
+            void setTicksToInactive(argos::UInt32 ticksToInactive) { c_ticksToInactive = ticksToInactive; }
+
         private:
-            RobotId m_robot;               ///< Robot ID this entry is for.
-            argos::UInt8 m_swarmMask;      ///< Data that we wish to share.
-            swlexp::Lamport8 m_lamport;    ///< Time at which the entry was last updated.
-            argos::UInt8 m_timeToInactive; ///< Number of swarmlist ticks until we consider this robot to be inactive.
+            RobotId m_robot;                ///< Robot ID this entry is for.
+            argos::UInt8 m_swarmMask;       ///< Data that we wish to share.
+            swlexp::Lamport8 m_lamport;     ///< Time at which the entry was last updated.
+            argos::UInt32 m_timeToInactive; ///< Number of swarmlist ticks until we consider this robot to be inactive.
+        
+        private:
+            static argos::UInt32 c_ticksToInactive; ///< The number of ticks until we consider and entry to be inactive.
         };
 
         /**
@@ -146,8 +157,7 @@ namespace swlexp {
 
         /**
          * @brief Places the swarmlist in a consensus state.
-         * This sets the lamport to a random value for each robot
-         * and resets the timer. This also takes a random entry as
+         * The timer of each entry is reset. This also takes a random entry as
          * the next entry to send.
          * @details This is used when we want to see how long it
          * would take for a new robot's data to be propagated
@@ -313,8 +323,6 @@ namespace swlexp {
         argos::UInt32 m_numActive;        ///< Number of active entries.
         argos::UInt32 m_next;             ///< The index of the next entry to send via a swarm chunk.
         argos::UInt32 m_newNext;          ///< The index of the next new entry to send via a swarm chunk when m_newData is not empty.
-        argos::UInt16 m_stepsTillChunk;   ///< Number of control steps until we brodcast the next swarm chunk.
-        argos::UInt32 m_stepsTillTick;    ///< Number of control steps until we perform a swarmlist tick.
 
         argos::UInt64 m_numMsgsTx;        ///< Number of swarm messages transmitted since the beginning of the experiment.
         argos::UInt64 m_numMsgsRx;        ///< Number of swarm messages received since the beginning of the experiment.

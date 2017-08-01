@@ -27,9 +27,7 @@
                     packet_drop_prob="PACKET_DROP_PROB"/>
                 <footbot_proximity implementation="default"/>
             </sensors>
-            <params
-                packet_size="10"
-                entries_should_become_inactive="ENTRIES_SHOULD_BECOME_INACTIVE"/>
+            <params entries_should_become_inactive="ENTRIES_SHOULD_BECOME_INACTIVE"/>
             <wheel_turning
                 hard_turn_angle_threshold="90"
                 soft_turn_angle_threshold="70"
@@ -47,6 +45,7 @@
         fb_csv="FOOTBOT_CSV_FILE"
         fb_status_log_delay="FOOTBOT_STATUS_LOG_DELAY"
         steps_to_stall="STEPS_TO_STALL"
+        packet_size="10"
         walltime="WALLTIME"
         protocol="PROTOCOL"
         topology="TOPOLOGY"

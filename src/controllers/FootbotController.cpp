@@ -8,15 +8,7 @@
 
 namespace swlexp {
     std::unordered_set<FootbotController*> FootbotController::c_controllers;
-    argos::UInt16 FootbotController::c_packetSize;
     argos::Real   FootbotController::c_packetDropProb;
-}
-
-/****************************************/
-/****************************************/
-
-argos::UInt16 swlexp::getPacketSize() {
-    return swlexp::FootbotController::getPacketSize();
 }
 
 /****************************************/
@@ -46,16 +38,18 @@ swlexp::FootbotController::~FootbotController() {
 /****************************************/
 /****************************************/
 
+using argos::CARGoSException; // Required because of the THROW_ARGOSEXCEPTION macro.
+
 void swlexp::FootbotController::Init(argos::TConfigurationNode& t_node) {
     // Set numeric ID.
     std::string idStr = GetId().substr(std::string("fb").size());
     m_id = std::stoi(idStr);
 
     // Get packet drop probability.
-    argos::TConfigurationNode controllers        = argos::GetNode(argos::CSimulator::GetInstance().GetConfigurationRoot(), "controllers");
-    argos::TConfigurationNode footbot_controller = argos::GetNode(controllers,        "footbot_controller");
-    argos::TConfigurationNode sensors            = argos::GetNode(footbot_controller, "sensors");
-    argos::TConfigurationNode rab                = argos::GetNode(sensors,            "range_and_bearing");
+    argos::TConfigurationNode& controllers        = argos::GetNode(argos::CSimulator::GetInstance().GetConfigurationRoot(), "controllers");
+    argos::TConfigurationNode& footbot_controller = argos::GetNode(controllers,        "footbot_controller");
+    argos::TConfigurationNode& sensors            = argos::GetNode(footbot_controller, "sensors");
+    argos::TConfigurationNode& rab                = argos::GetNode(sensors,            "range_and_bearing");
     argos::GetNodeAttribute(rab, "packet_drop_prob", c_packetDropProb);
 
     // Get actuators and sensors and build the messenger
@@ -64,16 +58,10 @@ void swlexp::FootbotController::Init(argos::TConfigurationNode& t_node) {
     argos::CCI_RangeAndBearingSensor*   rabSens = GetSensor  <argos::CCI_RangeAndBearingSensor  >("range_and_bearing");
     m_msn.init(rabAct, rabSens);
 
-    // Get packet size and whether entries should become inactive and init
-    // the swarmlist.
-    argos::GetNodeAttribute(t_node, "packet_size", c_packetSize);
+    // Init the swarmlist.
     m_swarmlist.init(m_id);
     m_localSwarmMask = 0x01;
     m_swarmlist.setSwarmMask(m_localSwarmMask);
-    m_swarmlist.setShouldRebroadcast(true);
-    bool entriesShouldBecomeInactive;
-    argos::GetNodeAttribute(t_node, "entries_should_become_inactive", entriesShouldBecomeInactive);
-    swlexp::Swarmlist::setEntriesShouldBecomeInactive(entriesShouldBecomeInactive);
 }
 
 /****************************************/
@@ -126,7 +114,7 @@ void swlexp::FootbotController::ControlStep() {
     if (m_id == c_controllers.size() - 1 && TIME % 1000 == 0) {
         std::cout << "Robot #"     << m_id << "\t; " <<
                      "Timesteps: " << TIME << "\t; " <<
-                     "Swarmlist size: " << m_swarmlist.getSize() << "\n";
+                     "Swarmlist num active: " << m_swarmlist.getNumActive() << "\n";
     }
 }
 
@@ -169,7 +157,8 @@ std::string swlexp::FootbotController::getCsvStatusLog(bool sideEffect) {
                NUM_MSGS_RX_SINCE_LOG      << c_CSV_DELIM <<
                bwRx                       << c_CSV_DELIM <<
                m_swarmlist.getSize()      << c_CSV_DELIM <<
-               m_swarmlist.getNumActive() << "\n";
+               m_swarmlist.getNumActive() << c_CSV_DELIM << 
+               '"' << m_swarmlist.serializeData(',', ';') << "\"\n";
 
     if (sideEffect) {
         m_numMsgsTxAtLastLog = NUM_MSGS_TX;
@@ -242,24 +231,6 @@ void swlexp::FootbotController::writeStatusLogHeader(std::ostream& o) {
 bool swlexp::FootbotController::isConsensusReached() {
     const argos::UInt32 NUM_CONTROLLERS = getNumControllers();
     return Swarmlist::getTotalNumActive() == NUM_CONTROLLERS * NUM_CONTROLLERS;
-}
-
-/****************************************/
-/****************************************/
-
-bool swlexp::FootbotController::isExperimentStalling(
-    argos::UInt32 stepsToStall) {
-
-    static argos::UInt32 timeSinceLastIncrease = 0;
-    static argos::UInt64 lastTotalNumActive = 0;
-    const argos::UInt32 TIME =
-        argos::CSimulator::GetInstance().GetSpace().GetSimulationClock();
-    if (Swarmlist::getTotalNumActive() > lastTotalNumActive) {
-        lastTotalNumActive = Swarmlist::getTotalNumActive();
-        timeSinceLastIncrease = TIME;
-        return false;
-    }
-    return  (TIME - timeSinceLastIncrease > stepsToStall);
 }
 
 /****************************************/

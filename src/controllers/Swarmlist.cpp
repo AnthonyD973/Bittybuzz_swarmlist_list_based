@@ -10,6 +10,8 @@
 #include "Swarmlist.h"
 
 namespace swlexp {
+    argos::UInt32       Swarmlist::Entry::c_ticksToInactive = 1;
+
     bool                Swarmlist::c_entriesShouldBecomeInactive;
     argos::UInt64       Swarmlist::c_totalNumActive = 0;
     argos::UInt16       Swarmlist::c_numEntriesPerSwarmMsg;
@@ -64,8 +66,6 @@ void swlexp::Swarmlist::reset() {
     m_numActive          = 0;
     m_next               = 0;
     m_newNext            = 0;
-    m_stepsTillChunk     = STEPS_PER_CHUNK - 1;
-    m_stepsTillTick      = STEPS_PER_TICK  - 1;
     m_numMsgsTx          = 0;
     m_numMsgsRx          = 0;
 
@@ -89,17 +89,8 @@ void swlexp::Swarmlist::reset() {
 /****************************************/
 
 void swlexp::Swarmlist::controlStep() {
-    if (m_stepsTillChunk == 0) {
-        m_stepsTillChunk = STEPS_PER_CHUNK;
-        _sendSwarmChunk();
-    }
-    --m_stepsTillChunk;
-
-    if (m_stepsTillTick == 0) {
-        m_stepsTillTick = STEPS_PER_TICK;
-        _tick();
-    }
-    --m_stepsTillTick;
+    _sendSwarmChunk();
+    _tick();
 }
 
 /****************************************/
@@ -117,8 +108,7 @@ void swlexp::Swarmlist::forceConsensus(const std::vector<RobotId>& existingRobot
 
     for (RobotId id : robots) {
         if (id != m_id) {
-            Lamport8 lamport = rng();
-            _update(id, 0, lamport);
+            _update(id, 0, 0);
         }
     }
     m_newData.clear();
@@ -223,7 +213,7 @@ void swlexp::Swarmlist::_update(RobotId robot,
 
 void swlexp::Swarmlist::_tick() {
     if (c_entriesShouldBecomeInactive) {
-        for (argos::UInt8 i = 0; i < m_data.size(); ++i) {
+        for (argos::UInt32 i = 0; i < m_data.size(); ++i) {
             // Deal with entries in inactive mode
             swlexp::Swarmlist::Entry& curr = m_data[i];
             if (curr.isActive(m_id)) {
@@ -318,19 +308,9 @@ argos::CByteArray swlexp::Swarmlist::_makeNextMessage() {
 void swlexp::Swarmlist::_sendSwarmChunk() {
 
     // Send several swarm messages
-    argos::UInt32 numMsgsRequiredToSendAllEntries = (m_numActive / c_numEntriesPerSwarmMsg + 1);
-
-    const argos::UInt8 NUM_MSGS_TX =
-        (numMsgsRequiredToSendAllEntries >= SWARM_CHUNK_AMOUNT) ?
-        (SWARM_CHUNK_AMOUNT) :
-        (numMsgsRequiredToSendAllEntries);
-
-    m_numMsgsTx += NUM_MSGS_TX;
-
-    for (argos::UInt8 i = 0; i < NUM_MSGS_TX; ++i) {
-        // Send a swarm message
-        m_msn->sendMsgTx(std::move(_makeNextMessage()));
-    }
+    m_numMsgsTx += 1;
+    // Send a swarm message
+    m_msn->sendMsgTx(std::move(_makeNextMessage()));
 }
 
 /****************************************/
@@ -388,9 +368,6 @@ swlexp::Swarmlist::Entry swlexp::Swarmlist::_getNewNext() {
     return *e;
 }
 
-/****************************************/
-/****************************************/
-
 // ==============================
 // =      SWARMLIST ENTRY       =
 // ==============================
@@ -405,8 +382,9 @@ swlexp::Swarmlist::Entry::Entry(RobotId robot,
     resetTimer();
 }
 
-/****************************************/
-/****************************************/
+// ==============================
+// =     SWARM_MSG_CALLBACK     =
+// ==============================
 
 void swlexp::Swarmlist::SwarmMsgCallback::operator()(
     const argos::CCI_RangeAndBearingSensor::SPacket& packet)

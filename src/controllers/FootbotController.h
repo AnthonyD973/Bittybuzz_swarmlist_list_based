@@ -76,10 +76,10 @@ namespace swlexp {
         argos::UInt64 getTotalNumMessagesRx();
 
         /**
-         * Gets the size of a sent packet.
+         * Gets the total number of swarmlist entries in the entire swarm.
          */
         inline static
-        argos::UInt16 getPacketSize() { return c_packetSize; }
+        argos::UInt64 getTotalNumActive() { return Swarmlist::getTotalNumActive(); }
 
         /**
          * Gets the packet drop probability.
@@ -131,18 +131,6 @@ namespace swlexp {
          */
         static
         bool isConsensusReached();
-
-        /**
-         * Determines whether the experiment has not been making any
-         * progress for a while.
-         * We define "progress" to be an increase in the total number of
-         * active entries.
-         * @param[in] stepsToStall The number of timesteps without any
-         * progress after which we declare the experiment as stalling.
-         * @return Whether the experiment is stalling.
-         */
-        static
-        bool isExperimentStalling(argos::UInt32 stepsToStall);
     
     private:
 
@@ -186,7 +174,6 @@ namespace swlexp {
 
         static std::unordered_set<FootbotController*> c_controllers; ///< Existing controllers.
 
-        static argos::UInt16 c_packetSize;     ///< Size of a message.
         static argos::Real   c_packetDropProb; ///< Probability of occurrence of a packet drop.
     };
 

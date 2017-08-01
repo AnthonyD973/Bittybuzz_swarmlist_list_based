@@ -8,6 +8,7 @@
 #include <ctime>
 
 #include "FootbotController.h"
+#include "ExpState.h"
 
 #ifndef EXP_LOOP_FUNC_H
 #define EXP_LOOP_FUNC_H
@@ -50,53 +51,6 @@ namespace swlexp {
     private:
 
         /**
-         * Places the robots depending on the topology.
-         */
-        void _placeRobots();
-
-        /**
-         * Determines which robot currently is the farthest from the
-         * arena's origin.
-         * Throws an ARGoS exception if there are no foot-bots on the arena.
-         * @return The robot farthest away from the arena's origin.
-         */
-        argos::CFootBotEntity& _findFarthestFromOrigin();
-
-        /**
-         * Places a certain number of robots in a line.
-         * @param[in] numRobots The number of robots to place.
-         */
-        void _placeLine(argos::UInt32 numRobots);
-
-        /**
-         * Places a certain number of robots in one large cluster in
-         * such a way that robots have a high number of neighbors in their
-         * communication range.
-         * @param[in] numRobots The number of robots to place.
-         */
-        void _placeScaleFree(argos::UInt32 numRobots);
-
-        /**
-         * Places a certain number of robots randomly inside a square.
-         * @param[in] numRobots The number of robots to place.
-         */
-        void _placeCluster(argos::UInt32 numRobots);
-
-        /**
-         * Places a certain number of robots uniformly in an area.
-         * @param[in] numRobots The number of robots to place.
-         * @param[in] area The area to place the robots in.
-         */
-        void _placeUniformly(argos::UInt32 numRobots, argos::CRange<argos::Real> area);
-
-        /**
-         * Places the walls of the arena.
-         * @param[in] numRobots The number of robots to place.
-         * @param[in] density Density of the robots.
-         */
-        void _placeWalls(argos::UInt32 numRobots);
-
-        /**
          * Finishes the experiment, in effect writing experiment data to the log
          * file.
          * @param[in] exitCode Code for how to finish the experiment.
@@ -110,10 +64,11 @@ namespace swlexp {
     public:
 
         /**
-         * Gets the communication range of the foot-bots.
+         * Determines the size of a packet.
+         * @return The size of a packet.
          */
         static
-        argos::Real getRabRange() { return c_rabRange; }
+        argos::UInt16 getPacketSize() { return c_packetSize; }
 
     private:
 
@@ -130,6 +85,11 @@ namespace swlexp {
     // ==============================
 
     private:
+
+        /**
+         * State of the experiment.
+         */
+        ExpStateBase* m_state;
 
         /**
          * Path to the experiment's param & result file.
@@ -240,11 +200,6 @@ namespace swlexp {
          * Delimiter of the CSV file.
          */
         static const char c_CSV_DELIM = ',';
-
-        /**
-         * Range of communication of the foot-bot.
-         */
-        static argos::Real c_rabRange;
 
         /**
          * Size of a communication packet.

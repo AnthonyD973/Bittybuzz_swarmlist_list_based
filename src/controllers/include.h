@@ -15,33 +15,6 @@ namespace swlexp {
     // ===============================
 
     /**
-     * The number of timesteps between the emission of swarm chunks.
-     */
-    #define STEPS_PER_CHUNK 1
-
-    /**
-     * The maximum number of swarm messages to send per swarm chunk.
-     * We send less messages if we don't have enough data to send.
-     */
-    #define SWARM_CHUNK_AMOUNT 1 // Doesn't work if it's not equal to 1.
-
-    /**
-     * The number of swarmlist ticks before a swarm entry
-     * is considered inactive.
-     * @note <b>Max value: 255</b>
-     */
-    #define SWARMLIST_TICKS_TO_INACTIVE (argos::UInt8)10
-
-    /**
-     * The number of timesteps before each swarmlist tick.
-     * 1 means "tick every timestep". This value has the effect of a
-     * multiplier to SWARMLIST_TICKS_TO_INACTIVE.
-     * @note <b>Max value: 65535</b>
-     * @see SWARMLIST_TICKS_TO_INACTIVE
-     */
-    #define STEPS_PER_TICK (argos::UInt16)10
-
-    /**
      * The maximum number of ticks a Lamport clock sould be above an old
      * Lamport clock so that the new Lamport clock is considered as 'new'.
      */
