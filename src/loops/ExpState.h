@@ -5,6 +5,7 @@
 #include <argos3/plugins/simulator/entities/cylinder_entity.h>
 #include <argos3/plugins/robots/foot-bot/simulator/footbot_entity.h>
 #include <string>
+#include <iostream>
 
 #include "include.h"
 
@@ -45,6 +46,7 @@ namespace swlexp {
     private:
         argos::UInt32 m_timeSinceLastIncrease = 0;
         argos::UInt64 m_lastTotalNumActive = 0;
+        std::string m_ttiFileName;
     };
 
 

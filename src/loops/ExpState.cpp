@@ -1,4 +1,4 @@
-#include <argos3/core/simulator/loop_functions.h>
+#include <argos3/core/simulator/simulator.h>
 
 #include "ExpState.h"
 #include "RobotPlacer.h"
@@ -12,7 +12,10 @@
 swlexp::ExpStateConsensus::ExpStateConsensus(argos::CLoopFunctions& loops)
     : ExpStateBase(loops)
 {
-    Swarmlist::setEntriesShouldBecomeInactive(false);
+    Swarmlist::setEntriesShouldBecomeInactive(true);
+    Swarmlist::Entry::setTicksToInactive((argos::UInt32)-1);
+    argos::TConfigurationNode& loop_functions = argos::GetNode(argos::CSimulator::GetInstance().GetConfigurationRoot(), "loop_functions");
+    argos::GetNodeAttribute(loop_functions, "tti_file", m_ttiFileName);
 }
 
 /****************************************/
@@ -51,7 +54,13 @@ bool swlexp::ExpStateConsensus::isExperimentStalling(
 /****************************************/
 
 bool swlexp::ExpStateConsensus::isFinished() {
-    return FootbotController::isConsensusReached();
+    bool isFinished = FootbotController::isConsensusReached();
+    if (isFinished) {
+        std::ofstream ttiFile(m_ttiFileName.c_str());
+        FootbotController::writeTtiData(ttiFile);
+        ttiFile.close();
+    }
+    return isFinished;
 }
 
 // ==============================

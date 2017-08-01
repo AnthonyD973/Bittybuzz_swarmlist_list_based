@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #PBS -j oe
 
-#stop on errors
+# Stop on errors
 set -e
 
 # Get experiment params
@@ -27,6 +27,7 @@ mkdir -p "$EXPERIMENT_DIR"
 ARGOS_OUT="$EXPERIMENT_DIR/config.argos"
 LOG_FILE="$EXPERIMENT_DIR/log.txt"
 RES_FILE="$EXPERIMENT_DIR/res.csv"
+TTI_FILE="$EXPERIMENT_DIR/tti.csv"
 FOOTBOT_CSV_FILE="$EXPERIMENT_DIR/status_logs.csv"
 
 # Generate argos file with the appropriate params
@@ -35,6 +36,7 @@ sed -e "s|EXPERIMENT_NUMBER|$EXPERIMENT_NUMBER|g" \
     -e "s|LOOP_FUNCTIONS_LIB|$LOOP_FUNCTIONS_LIB|g" \
     -e "s|LOG_FILE|$LOG_FILE|g" \
     -e "s|RES_FILE|$RES_FILE|g" \
+    -e "s|TTI_FILE|$TTI_FILE|g" \
     -e "s|FOOTBOT_CSV_FILE|$FOOTBOT_CSV_FILE|g" \
     -e "s|FOOTBOT_STATUS_LOG_DELAY|$FOOTBOT_STATUS_LOG_DELAY|g" \
     -e "s|WALLTIME|$WALLTIME|g" \

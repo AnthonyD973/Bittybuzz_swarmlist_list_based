@@ -74,41 +74,41 @@ void swlexp::FootbotController::ControlStep() {
     m_msn.controlStep();
     m_swarmlist.controlStep();
 
-    switch(m_swarmlist.getNumActive() % 8) {
-        case 0: {
-            m_leds->SetAllColors(argos::CColor::BLACK);
-            break;
-        }
-        case 1: {
-            m_leds->SetAllColors(argos::CColor::RED);
-            break;
-        }
-        case 2: {
-            m_leds->SetAllColors(argos::CColor::YELLOW);
-            break;
-        }
-        case 3: {
-            m_leds->SetAllColors(argos::CColor::GREEN);
-            break;
-        }
-        case 4: {
-            m_leds->SetAllColors(argos::CColor::CYAN);
-            break;
-        }
-        case 5: {
-            m_leds->SetAllColors(argos::CColor::BLUE);
-            break;
-        }
-        case 6: {
-            m_leds->SetAllColors(argos::CColor::MAGENTA);
-            break;
-        }
-        case 7: {
-            m_leds->SetAllColors(argos::CColor::WHITE);
-            break;
-        }
-        default: ;
-    }
+    // switch(m_swarmlist.getNumActive() % 8) {
+    //     case 0: {
+    //         m_leds->SetAllColors(argos::CColor::BLACK);
+    //         break;
+    //     }
+    //     case 1: {
+    //         m_leds->SetAllColors(argos::CColor::RED);
+    //         break;
+    //     }
+    //     case 2: {
+    //         m_leds->SetAllColors(argos::CColor::YELLOW);
+    //         break;
+    //     }
+    //     case 3: {
+    //         m_leds->SetAllColors(argos::CColor::GREEN);
+    //         break;
+    //     }
+    //     case 4: {
+    //         m_leds->SetAllColors(argos::CColor::CYAN);
+    //         break;
+    //     }
+    //     case 5: {
+    //         m_leds->SetAllColors(argos::CColor::BLUE);
+    //         break;
+    //     }
+    //     case 6: {
+    //         m_leds->SetAllColors(argos::CColor::MAGENTA);
+    //         break;
+    //     }
+    //     case 7: {
+    //         m_leds->SetAllColors(argos::CColor::WHITE);
+    //         break;
+    //     }
+    //     default: ;
+    // }
 
     const argos::UInt32 TIME = space.GetSimulationClock();
     if (m_id == c_controllers.size() - 1 && TIME % 1000 == 0) {
@@ -157,8 +157,7 @@ std::string swlexp::FootbotController::getCsvStatusLog(bool sideEffect) {
                NUM_MSGS_RX_SINCE_LOG      << c_CSV_DELIM <<
                bwRx                       << c_CSV_DELIM <<
                m_swarmlist.getSize()      << c_CSV_DELIM <<
-               m_swarmlist.getNumActive() << c_CSV_DELIM << 
-               '"' << m_swarmlist.serializeData(',', ';') << "\"\n";
+               m_swarmlist.getNumActive() << "\n";
 
     if (sideEffect) {
         m_numMsgsTxAtLastLog = NUM_MSGS_TX;
@@ -214,15 +213,37 @@ void swlexp::FootbotController::forceConsensus() {
 
 void swlexp::FootbotController::writeStatusLogHeader(std::ostream& o) {
     static const std::string STATUS_LOG_HEADER = std::string() +
-        "ID"                             + c_CSV_DELIM +
-        "Time (timesteps)"               + c_CSV_DELIM +
-        "Num msgs tx"                    + c_CSV_DELIM +
-        "Avg. tx bandwidth (B/timestep)" + c_CSV_DELIM +
-        "Num msgs rx"                    + c_CSV_DELIM +
-        "Avg. rx bandwidth (B/timestep)" + c_CSV_DELIM +
-        "Swl size"                       + c_CSV_DELIM +
+        "ID"                       + c_CSV_DELIM +
+        "Time (ts)"                + c_CSV_DELIM +
+        "Num msgs tx"              + c_CSV_DELIM +
+        "Avg. tx bandwidth (B/ts)" + c_CSV_DELIM +
+        "Num msgs rx"              + c_CSV_DELIM +
+        "Avg. rx bandwidth (B/ts)" + c_CSV_DELIM +
+        "Swl size"                 + c_CSV_DELIM +
         "Swl num active\n";
     o << STATUS_LOG_HEADER;
+}
+
+/****************************************/
+/****************************************/
+
+void swlexp::FootbotController::writeTtiData(std::ostream& o) {
+    argos::UInt64 totalTtiRequired = 0;
+    argos::UInt32 maxTtiRequired = 0;
+    argos::Real sumAvgTtis = 0.0;
+    for (FootbotController* controller : c_controllers) {
+        const argos::UInt32 TTI_REQUIRED = controller->m_swarmlist.getHighestTti();
+        if (TTI_REQUIRED > maxTtiRequired) {
+            maxTtiRequired = TTI_REQUIRED;
+        }
+        totalTtiRequired += TTI_REQUIRED;
+        sumAvgTtis += controller->m_swarmlist.getAverageTti();
+        o << TTI_REQUIRED << c_CSV_DELIM;
+    }
+    o << '\n';
+    o << (sumAvgTtis / c_controllers.size()) << '\n';
+    o << ((argos::Real)totalTtiRequired / c_controllers.size()) << '\n';
+    o << maxTtiRequired << '\n';
 }
 
 /****************************************/

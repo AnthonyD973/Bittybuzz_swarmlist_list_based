@@ -41,6 +41,7 @@
         label="exp_loop_func"
         res="RES_FILE"
         log="LOG_FILE"
+        tti_file="TTI_FILE"
         realtime_output_file="REALTIME_OUTPUT_FILE"
         fb_csv="FOOTBOT_CSV_FILE"
         fb_status_log_delay="FOOTBOT_STATUS_LOG_DELAY"

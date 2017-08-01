@@ -191,6 +191,20 @@ namespace swlexp {
         argos::UInt64 getNumMsgsRx() const { return m_numMsgsRx; }
 
         /**
+         * Gets the highest value of the Ticks To Inactive of entries of
+         * this robot before its update.
+         */
+        inline
+        argos::UInt32 getHighestTti() const { return m_highestTti; }
+
+        /**
+         * Determines the Ticks To Inactive that would be required on
+         * an average update.
+         */
+        inline
+        argos::Real getAverageTti() const { return (argos::Real)m_ttiSum / m_numUpdates; }
+
+        /**
          * Composes a string consisting of a set of
          * "(ID,lamport since update, time to inactive)"
          * entries.
@@ -297,6 +311,10 @@ namespace swlexp {
 
         Messenger* m_msn;                 ///< Messenger object.
         SwarmMsgCallback m_swMsgCb;       ///< Callback object.
+
+        argos::UInt32 m_highestTti;       ///< Highest Ticks To Inactive reached by an entry before its update during the experiment.
+        argos::UInt64 m_ttiSum;
+        argos::UInt32 m_numUpdates;
 
     // ==============================
     // =       STATIC MEMBERS       =

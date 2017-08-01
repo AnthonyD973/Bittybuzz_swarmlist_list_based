@@ -57,11 +57,14 @@ void swlexp::Swarmlist::reset() {
     m_data.shrink_to_fit();
 
     // Reinitialize stuff
-    c_totalNumActive    -= m_numActive;
-    m_numActive          = 0;
-    m_next               = 0;
-    m_numMsgsTx          = 0;
-    m_numMsgsRx          = 0;
+    c_totalNumActive -= m_numActive;
+    m_numActive       = 0;
+    m_next            = 0;
+    m_numMsgsTx       = 0;
+    m_numMsgsRx       = 0;
+    m_highestTti      = 0;
+    m_ttiSum          = 0;
+    m_numUpdates      = 0;
 
     c_numEntriesPerSwarmMsg =
         (getPacketSize() - 1) /
@@ -134,8 +137,8 @@ const swlexp::Swarmlist::Entry& swlexp::Swarmlist::_get(RobotId robot) const {
 /****************************************/
 
 void swlexp::Swarmlist::_update(RobotId robot,
-                               argos::UInt8 swarmMask,
-                               Lamport8 lamport) {
+                                argos::UInt8 swarmMask,
+                                Lamport8 lamport) {
     // Does the entry already exist?
     const swlexp::Swarmlist::Entry* existingEntry;
     bool existed;
@@ -174,9 +177,18 @@ void swlexp::Swarmlist::_update(RobotId robot,
     }
 
     if (shouldUpdate) {
+        // Change the lowest TTI for the statistical analysis.
+        if (existed && robot != m_id) {
+            const argos::UInt32 TTI = -(existingEntry->getTimeToInactive());
+            m_ttiSum += TTI;
+            ++m_numUpdates;
+            if (TTI > m_highestTti) {
+                m_highestTti = TTI;
+            }
+        }
         // Create a new entry (which also resets the timer)
-        swlexp::Swarmlist::Entry newEntry = swlexp::Swarmlist::Entry(
-            robot, swarmMask, lamport);
+        swlexp::Swarmlist::Entry newEntry =
+            swlexp::Swarmlist::Entry(robot, swarmMask, lamport);
         _set(newEntry);
     }
 }

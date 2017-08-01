@@ -122,6 +122,18 @@ namespace swlexp {
             for (FootbotController* controller : c_controllers)
                 o << controller->getCsvStatusLog(sideEffect);
         }
+        
+        /**
+         * Writes the Ticks To Inactive data to a stream.
+         * More precicely, this function writes several lines:
+         * 1) The maximal TTI of each robot ;
+         * 2) The average TTI when an entry is updated ;
+         * 3) The average maximal TTI ; and
+         * 4) The maximum of the TTIs of each robot.
+         * @param[in,out] o The stream to write the data to.
+         */
+        static
+        void writeTtiData(std::ostream& o);
 
         /**
          * Determines whether the number of active foot-bot entries of all

@@ -58,7 +58,7 @@ conduct_experiment() {
             \"$protocol\" \"$topology\" \"$num_robots\" \"$packet_drop_prob\" \
             \"$ENTRIES_SHOULD_BECOME_INACTIVE\"" \
             -N "${protocol::1}${topology::1}_${packet_drop_prob}_${num_robots}" \
-            -l "walltime=${WALLTIME}" \
+            -l "walltime=${WALLTIME},mem=16GB" \
             "$GIT_ROOT/src/experimenters/job_runner"
             ;;
 
