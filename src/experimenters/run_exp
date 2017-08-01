@@ -214,7 +214,7 @@ WALLTIME="00:01:00"
 STEPS_TO_STALL=3000
 
 # Create final res file.
-echo -n "Protocol,Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Messages received (total),Avg. bandwidth (B/(timestep*footbot)),Avg. received bandwidth (B/(timestep*footbot))" > $FINAL_RES_CSV
+echo "Protocol,Topology,Number of robots,Message drop probability,Consensus time (timesteps),Messages sent (total),Messages received (total),Avg. bandwidth (B/(timestep*footbot)),Avg. received bandwidth (B/(timestep*footbot))" > $FINAL_RES_CSV
 
 ##################################################
 # Conduct small experiments
