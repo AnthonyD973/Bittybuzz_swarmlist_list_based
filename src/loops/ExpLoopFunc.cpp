@@ -227,10 +227,10 @@ void swlexp::ExpLoopFunc::_finishExperiment(swlexp::ExpLoopFunc::ExitCode exitCo
             swlexp::FootbotController::getTotalNumMessagesTx();
         const argos::UInt64 NUM_MSGS_RX =
             swlexp::FootbotController::getTotalNumMessagesRx();
-        double bwTx = ((double)NUM_MSGS_TX / GetSpace().GetSimulationClock() /
-                    NUM_FOOTBOTS) * c_packetSize;
-        double bwRx = ((double)NUM_MSGS_RX / GetSpace().GetSimulationClock() /
-                    NUM_FOOTBOTS) * c_packetSize;
+        argos::Real bwTx = ((argos::Real)NUM_MSGS_TX / GetSpace().GetSimulationClock() /
+            NUM_FOOTBOTS) * c_packetSize;
+        argos::Real bwRx = ((argos::Real)NUM_MSGS_RX / GetSpace().GetSimulationClock() /
+            NUM_FOOTBOTS) * c_packetSize;
 
         m_expRes << c_CSV_DELIM << GetSpace().GetSimulationClock() <<
                     c_CSV_DELIM << NUM_MSGS_TX <<

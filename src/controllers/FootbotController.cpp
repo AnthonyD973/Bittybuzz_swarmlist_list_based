@@ -179,7 +179,7 @@ argos::UInt64 swlexp::FootbotController::getTotalNumMessagesTx() {
 /****************************************/
 
 argos::UInt64 swlexp::FootbotController::getTotalNumMessagesRx() {
-    return std::accumulate(c_controllers.begin(), c_controllers.end(), 0, _msgTxElemSum);
+    return std::accumulate(c_controllers.begin(), c_controllers.end(), 0, _msgRxElemSum);
 }
 
 /****************************************/
