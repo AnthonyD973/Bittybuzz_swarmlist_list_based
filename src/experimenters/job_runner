@@ -22,6 +22,10 @@ NUM_ROBOTS=${14}
 PACKET_DROP_PROB=${15}
 ENTRIES_SHOULD_BECOME_INACTIVE=${16}
 
+# Echo Job ID
+echo "Job ID is $PBS_JOBID"
+echo
+
 # Run job
 mkdir -p "$EXPERIMENT_DIR"
 ARGOS_OUT="$EXPERIMENT_DIR/config.argos"
