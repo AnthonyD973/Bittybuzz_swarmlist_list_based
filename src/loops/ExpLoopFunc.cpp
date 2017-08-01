@@ -54,6 +54,8 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
     argos::GetNodeAttribute(t_tree, "protocol", m_protocol);
     argos::GetNodeAttribute(t_tree, "topology", m_topology);
     argos::GetNodeAttribute(t_tree, "num_robots", m_numRobots);
+    std::string jobId;
+    argos::GetNodeAttribute(t_tree, "job_id", jobId);
 
     std::string walltimeStr;
     argos::GetNodeAttribute(t_tree, "walltime", walltimeStr);
@@ -103,8 +105,11 @@ void swlexp::ExpLoopFunc::Init(argos::TConfigurationNode& t_tree) {
                 m_msgDropProb << c_CSV_DELIM <<
                 m_numRobots;
 
-    m_expLog << "---EXPERIMENT START---\n"
-                "Protocol: " << m_protocol << "\n"
+    m_expLog << "---EXPERIMENT START---\n";
+    if (jobId != "") {
+        m_expLog << "Job ID: " << jobId << "\n";
+    }
+    m_expLog << "Protocol: " << m_protocol << "\n"
                 "Topology: " << m_topology << "\n"
                 "Drop probability: " << (m_msgDropProb * 100) << "%\n"
                 "Number of robots: " << m_numRobots << "\n";

@@ -39,6 +39,7 @@
     <loop_functions
         library="LOOP_FUNCTIONS_LIB"
         label="exp_loop_func"
+        job_id="JOB_ID"
         res="RES_FILE"
         log="LOG_FILE"
         tti_file="TTI_FILE"
