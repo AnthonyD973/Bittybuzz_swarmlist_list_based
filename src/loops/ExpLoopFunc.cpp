@@ -204,7 +204,7 @@ bool swlexp::ExpLoopFunc::IsExperimentFinished() {
     std::time_t time = std::time(NULL);
     bool isExperimentFinished = m_state->isFinished();
     bool isWalltimeReached = (m_expWalltime != 0 && (time - m_timeBeginning >= m_expWalltime));
-    bool isExperimentStalling = m_state->isExperimentStalling(m_expStepsToStall);
+    bool isExperimentStalling = false;//m_state->isExperimentStalling(m_expStepsToStall);
     if (isExperimentFinished) {
         _finishExperiment(ExitCode::NORMAL);
     }
