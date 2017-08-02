@@ -15,7 +15,7 @@ namespace swlexp {
     bool                Swarmlist::c_entriesShouldBecomeInactive;
     argos::UInt64       Swarmlist::c_totalNumActive = 0;
     argos::UInt16       Swarmlist::c_numEntriesPerSwarmMsg;
-    const argos::UInt16 Swarmlist::c_SWARM_ENTRY_SIZE = sizeof(RobotId) + sizeof(argos::UInt8) + sizeof(Lamport8);
+    const argos::UInt16 Swarmlist::c_SWARM_ENTRY_SIZE = sizeof(RobotId) + sizeof(argos::UInt8) + sizeof(Lamport32);
     const argos::UInt8  Swarmlist::c_ROBOT_ID_POS     = 0;
     const argos::UInt8  Swarmlist::c_SWARM_MASK_POS   = 0 + sizeof(RobotId);
     const argos::UInt8  Swarmlist::c_LAMPORT_POS      = 0 + sizeof(RobotId) + sizeof(argos::UInt8);
@@ -68,7 +68,7 @@ void swlexp::Swarmlist::reset() {
 
     c_numEntriesPerSwarmMsg =
         (getPacketSize() - 1) /
-        (sizeof(RobotId) + sizeof(argos::UInt8) + sizeof(Lamport8));
+        (sizeof(RobotId) + sizeof(argos::UInt8) + sizeof(Lamport32));
 
     _update(m_id, 0, 0);
 }
@@ -138,7 +138,7 @@ const swlexp::Swarmlist::Entry& swlexp::Swarmlist::_get(RobotId robot) const {
 
 void swlexp::Swarmlist::_update(RobotId robot,
                                 argos::UInt8 swarmMask,
-                                Lamport8 lamport) {
+                                Lamport32 lamport) {
     // Does the entry already exist?
     const swlexp::Swarmlist::Entry* existingEntry;
     bool existed;
@@ -153,7 +153,7 @@ void swlexp::Swarmlist::_update(RobotId robot,
     bool shouldUpdate;
     if (existed) {
         // Yes.
-         swlexp::Lamport8 oldLamport = existingEntry->getLamport();
+        Lamport32 oldLamport = existingEntry->getLamport();
         // Is entry active?
         if (existingEntry->isActive(m_id)) {
             // Yes ; use circular lamport clock model to determine
@@ -301,7 +301,7 @@ swlexp::Swarmlist::Entry swlexp::Swarmlist::_getNext() {
 
 swlexp::Swarmlist::Entry::Entry(RobotId robot,
                                 argos::UInt8 swarmMask,
-                                swlexp::Lamport8 lamport)
+                                Lamport32 lamport)
     : m_robot(robot)
     , m_swarmMask(swarmMask)
     , m_lamport(lamport)
@@ -323,7 +323,7 @@ void swlexp::Swarmlist::SwarmMsgCallback::operator()(
         // don't update our info.
         if (robot != m_swarmlist->m_id) {
             argos::UInt8 swarmMask  = SWARM_MSG[1+c_SWARM_ENTRY_SIZE*j+c_SWARM_MASK_POS];
-            Lamport8 lamport = SWARM_MSG[1+c_SWARM_ENTRY_SIZE*j+c_LAMPORT_POS];
+            Lamport32 lamport = *(Lamport32*)&SWARM_MSG[1+c_SWARM_ENTRY_SIZE*j+c_LAMPORT_POS];
             m_swarmlist->_update(robot, swarmMask, lamport);
         }
     }
@@ -344,5 +344,5 @@ void swlexp::writeInPacket(argos::CByteArray& packet,
     const argos::UInt16 ENTRY_POS = 1 + Swarmlist::c_SWARM_ENTRY_SIZE * idx;
     *(RobotId*)     &data[ENTRY_POS+Swarmlist::c_ROBOT_ID_POS]   = entry.getRobotId();
     *(argos::UInt8*)&data[ENTRY_POS+Swarmlist::c_SWARM_MASK_POS] = entry.getSwarmMask();
-    *(Lamport8*)    &data[ENTRY_POS+Swarmlist::c_LAMPORT_POS]    = entry.getLamport();
+    *(Lamport32*)   &data[ENTRY_POS+Swarmlist::c_LAMPORT_POS]    = entry.getLamport();
 }

@@ -43,14 +43,14 @@ namespace swlexp {
 
         public:
 
-            Entry(RobotId robot, argos::UInt8 swarmMask, swlexp::Lamport8 lamport);
+            Entry(RobotId robot, argos::UInt8 swarmMask, Lamport32 lamport);
 
             inline
             RobotId getRobotId() const { return m_robot; }
             inline
             argos::UInt8 getSwarmMask() const { return m_swarmMask; }
             inline
-            swlexp::Lamport8 getLamport() const { return m_lamport; }
+            Lamport32 getLamport() const { return m_lamport; }
             inline
             argos::UInt32 getTimeToInactive() const { return m_timeToInactive; }
 
@@ -95,7 +95,7 @@ namespace swlexp {
         private:
             RobotId m_robot;                ///< Robot ID this entry is for.
             argos::UInt8 m_swarmMask;       ///< Data that we wish to share.
-            swlexp::Lamport8 m_lamport;     ///< Time at which the entry was last updated.
+            Lamport32 m_lamport;            ///< Time at which the entry was last updated.
             argos::UInt32 m_timeToInactive; ///< Number of swarmlist ticks until we consider this robot to be inactive.
         
         private:
@@ -239,7 +239,7 @@ namespace swlexp {
          * @param[in] lamport The time at which this entry was created by
          * 'robot'.
          */
-        void _update(RobotId robot, argos::UInt8 swarmMask, swlexp::Lamport8 lamport);
+        void _update(RobotId robot, argos::UInt8 swarmMask, Lamport32 lamport);
 
         /**
          * Removes 1 from all timers, and deals with old entries.
