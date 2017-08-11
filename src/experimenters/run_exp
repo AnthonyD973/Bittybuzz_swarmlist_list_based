@@ -218,7 +218,8 @@ echo "Protocol,Topology,Number of robots,Message drop probability,Consensus time
 ##################################################
 # Conduct small experiments
 num_experiments=1
-conduct_experiment_set "consensus" "line" "0.25" "30"
+conduct_experiment_with_seed "18" "consensus" "cluster" "0.00" "500"
+#conduct_experiment_set "consensus" "line" "0.25" "30"
 
 # Conduct the "real" experiments
 # conduct_consensus_experiments

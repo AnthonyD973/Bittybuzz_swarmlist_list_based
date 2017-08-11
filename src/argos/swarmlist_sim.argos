@@ -65,11 +65,11 @@
     </physics_engines>
 
     <visualization>
-        <!-- <qt-opengl>
+         <qt-opengl>
             <camera>
                 <placement idx="0" position="-4.2486,0.05,4.26981" look_at="-3.5415,0.05,3.56271" up="0.707107,0,0.707107" lens_focal_length="20"/>
             </camera>
-        </qt-opengl> -->
+        </qt-opengl> 
     </visualization>
 
 </argos-configuration>

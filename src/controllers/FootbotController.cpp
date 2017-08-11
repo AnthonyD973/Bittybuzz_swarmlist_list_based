@@ -74,41 +74,41 @@ void swlexp::FootbotController::ControlStep() {
     m_msn.controlStep();
     m_swarmlist.controlStep();
 
-    // switch(m_swarmlist.getNumActive() % 8) {
-    //     case 0: {
-    //         m_leds->SetAllColors(argos::CColor::BLACK);
-    //         break;
-    //     }
-    //     case 1: {
-    //         m_leds->SetAllColors(argos::CColor::RED);
-    //         break;
-    //     }
-    //     case 2: {
-    //         m_leds->SetAllColors(argos::CColor::YELLOW);
-    //         break;
-    //     }
-    //     case 3: {
-    //         m_leds->SetAllColors(argos::CColor::GREEN);
-    //         break;
-    //     }
-    //     case 4: {
-    //         m_leds->SetAllColors(argos::CColor::CYAN);
-    //         break;
-    //     }
-    //     case 5: {
-    //         m_leds->SetAllColors(argos::CColor::BLUE);
-    //         break;
-    //     }
-    //     case 6: {
-    //         m_leds->SetAllColors(argos::CColor::MAGENTA);
-    //         break;
-    //     }
-    //     case 7: {
-    //         m_leds->SetAllColors(argos::CColor::WHITE);
-    //         break;
-    //     }
-    //     default: ;
-    // }
+    switch(m_swarmlist.getNumActive() % 8) {
+        case 0: {
+            m_leds->SetAllColors(argos::CColor::BLACK);
+            break;
+        }
+        case 1: {
+            m_leds->SetAllColors(argos::CColor::RED);
+            break;
+        }
+        case 2: {
+            m_leds->SetAllColors(argos::CColor::YELLOW);
+            break;
+        }
+        case 3: {
+            m_leds->SetAllColors(argos::CColor::GREEN);
+            break;
+        }
+        case 4: {
+            m_leds->SetAllColors(argos::CColor::CYAN);
+            break;
+        }
+        case 5: {
+            m_leds->SetAllColors(argos::CColor::BLUE);
+            break;
+        }
+        case 6: {
+            m_leds->SetAllColors(argos::CColor::MAGENTA);
+            break;
+        }
+        case 7: {
+            m_leds->SetAllColors(argos::CColor::WHITE);
+            break;
+        }
+        default: ;
+    }
 
     const argos::UInt32 TIME = space.GetSimulationClock();
     if (m_id == c_controllers.size() - 1 && TIME % 1000 == 0) {
