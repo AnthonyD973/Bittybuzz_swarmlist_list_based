@@ -67,4 +67,4 @@ fi
 
 
 # Write experiment results to final result file.
-(cat $RES_FILE | sed '/^$/d') 1>> $FINAL_RES_CSV
+(cat $RES_FILE | sed '/^$/d' && echo) 1>> $FINAL_RES_CSV
