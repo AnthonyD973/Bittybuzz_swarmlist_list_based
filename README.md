@@ -19,3 +19,13 @@ You must have [argos3](http://www.argos-sim.info) installed. Inside the director
 Or:
 
     $ make submit # To run jobs on a server that uses qwork, such as the Mammoth supercomputer.
+
+Analyzing the experiments' results
+----------------------------------
+
+This step additionally requires the Jupyter notebook. You may run
+`$ jupyter notebook analysis.ipynb` directly inside `src/statistics`, or you can run:
+
+    $ make statistics
+
+which are equivalent commands.
